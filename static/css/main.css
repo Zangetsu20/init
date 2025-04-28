@@ -1,0 +1,32 @@
+/* HEADER */
+.heder__img {
+    height: 48px;
+    width: 48px;
+}
+
+body {
+    margin: 0;
+}
+*,
+*:before,
+*:after {
+    box-sizing: border-box;
+}
+header, footer {
+    padding: 20px;
+    background-color: #fafafa;
+}
+.page {
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+.content {
+    max-width: 100vh;
+    margin: 0 auto;
+    padding: 80px 40px;
+
+    flex: 1 1 auto;
+}
