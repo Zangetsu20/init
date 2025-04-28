@@ -20,12 +20,13 @@ def index():
 
 @app.route("/posts")
 def posts():
-    return render_template('posts.html')
+    posts = Graf.query.all()
+    return render_template('posts.html', posts=posts)
 
 
-@app.route("/create", methods=['POST', 'GET'])
+@app.route("/create", methods=['Post', 'GET'])
 def create():
-    if request.method == 'POST':
+    if request.method == 'Post':
         firstname = request.form['firstname']
         lastname = request.form['lastname']
         

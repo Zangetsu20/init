@@ -5,6 +5,23 @@
 {% endblock %}
 
 {% block content %}
+
 <h1>Все записи</h1>
+
+<div class="row">
+
+{% for post in posts %}
+<div class="col-md-8 item">
+    <div class="item-in">
+    <h1>{{ post.firstname}}</h1>
+    <div class="sepertor"></div>
+    <p>{{ post.lastname}}</p>
+    <a class=role="button">
+        <i class="fa-long-arrow-right"></i>
+    </a>
+</div>
+</div>
+{% endfor %}
+</div>
 
 {% endblock %}
