@@ -8,8 +8,8 @@ db = SQLAlchemy(app)
 
 class Graf(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String(300), nullable=False)
-    text = db.Column(db.Text, nullable=False)
+    firstname = db.Column(db.String(300), nullable=False)
+    lastname = db.Column(db.String(300), nullable=False)
 
 
 @app.route("/index")
@@ -26,10 +26,10 @@ def posts():
 @app.route("/create", methods=['POST', 'GET'])
 def create():
     if request.method == 'POST':
-        title = request.form['title']
-        text = request.form['text']
+        firstname = request.form['firstname']
+        lastname = request.form['lastname']
         
-        post = Graf(title=title, text=text)
+        post = Graf(firstname=firstname, lastname=lastname)
         
         try:
             db.session.add(post)
