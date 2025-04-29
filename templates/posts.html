@@ -13,11 +13,11 @@
 {% for post in posts %}
 <div class="col-md-8 item">
     <div class="item-in">
-    <h1>{{ post.firstname}}</h1>
+        <h2>{{ post.firstname }}</h2>
     <div class="sepertor"></div>
     <p>{{ post.lastname}}</p>
-    <a class=role="button">
-        <i class="fa-long-arrow-right"></i>
+    <a class="btn btn-primary" href="{{ url_for('some_route', id=post.id) }}" role="button">
+        <i class="fas fa-long-arrow-right"></i>
     </a>
 </div>
 </div>
