@@ -34,10 +34,14 @@ header, footer {
 /* posts */
 
 .item {
-    margin-bottom: 20px;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px 2em;
+    margin-bottom: 2px;
 }
+
 .item-in {
-    padding: 15px;
+    padding: 1px;
     border: 1px solid #ddd;
     border-radius: 5px;
 }
@@ -45,3 +49,7 @@ header, footer {
     border-bottom: 1px solid #eee;
     margin: 10px 0;
 }
+
+.item-in {
+    gap: 5px; /* Уменьшили расстояние между элементами, можно менять значение */
+  }
