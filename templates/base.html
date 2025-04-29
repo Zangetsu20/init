@@ -27,21 +27,23 @@
         </ul>
 
         <!-- Правая часть: кнопка "Добавить запись" и авторизация -->
-        <div class="d-flex align-items-center gap-3">
-            <!-- Кнопка "Добавить запись" -->
-            <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal"
-                    data-bs-target="#addRecordModal">
-                Добавить запись
-            </button>
+<div class="d-flex align-items-center gap-3">
+    <!-- Кнопка "Добавить запись" — отображается только если пользователь авторизован -->
+    {% if current_user.is_authenticated %}
+        <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal"
+                data-bs-target="#addRecordModal">
+            Добавить запись
+        </button>
+    {% endif %}
 
-            <!-- Авторизация -->
-            {% if current_user.is_authenticated %}
-                <a href="{{ url_for('logout') }}" class="btn btn-outline-primary btn-sm me-2">Выйти</a>
-            {% else %}
-                <a href="{{ url_for('login') }}" class="btn btn-outline-primary btn-sm me-2">Войти</a>
-                <a href="{{ url_for('register') }}" class="btn btn-primary btn-sm">Зарегистрироваться</a>
-            {% endif %}
-        </div>
+    <!-- Авторизация -->
+    {% if current_user.is_authenticated %}
+        <a href="{{ url_for('logout') }}" class="btn btn-outline-primary btn-sm">Выйти</a>
+    {% else %}
+        <a href="{{ url_for('login') }}" class="btn btn-outline-primary btn-sm">Войти</a>
+        <a href="{{ url_for('register') }}" class="btn btn-primary btn-sm">Зарегистрироваться</a>
+    {% endif %}
+</div>
     </div>
 </header>
 
