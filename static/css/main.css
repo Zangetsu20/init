@@ -36,20 +36,25 @@ header, footer {
 .item {
     display: grid;
     grid-template-columns: 1fr 1fr 1fr;
-    gap: 10px 2em;
+    gap: 0px 8em;
     margin-bottom: 2px;
+    border-bottom: 1px solid #ddd;      
 }
-
-.item-in {
-    padding: 1px;
+.row
+{
     border: 1px solid #ddd;
     border-radius: 5px;
 }
+.item-in {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 1px 0em; 
+    padding: 1px;
+    
+}
+
 .sepertor {
     border-bottom: 1px solid #eee;
     margin: 10px 0;
 }
 
-.item-in {
-    gap: 5px; /* Уменьшили расстояние между элементами, можно менять значение */
-  }

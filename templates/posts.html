@@ -11,10 +11,11 @@
 <div class="row">
 
     {% for post in posts %}
-    <div class="col-md-8 item">
-        <div class="item-in d-flex align-items-center px-3">
+    <div class="item">
+        <div class="item-in">  <!---- d-flex align-items-center px-3 -->
             <span class="first-name">{{ post.firstname }}</span>
-            <span class="last-name ms-2">{{ post.lastname }}</span> <!-- ms-2 = margin-left: .5rem -->
+            <span class="last-name">{{ post.lastname }}</span>
+            <span class="d">{{ post.d }}</span>
         </div>
     </div>
   {% endfor %}

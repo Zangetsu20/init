@@ -23,6 +23,7 @@ class Graf(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     firstname = db.Column(db.String(300), nullable=False)
     lastname = db.Column(db.String(300), nullable=False)
+    d = db.Column(db.String(300), nullable=False)
 
 # User loader for Flask-Login
 @login_manager.user_loader
@@ -50,8 +51,9 @@ def create():
     if request.method == 'POST':
         firstname = request.form['firstname']
         lastname = request.form['lastname']
+        d = request.form['d']
         
-        post = Graf(firstname=firstname, lastname=lastname)
+        post = Graf(firstname=firstname, lastname=lastname, d=d)
         
         try:
             db.session.add(post)
