@@ -6,5 +6,89 @@
 
 {% block content %}
 
+{% for teacher in teachers %}
+<div class="item1" data-id="{{ teacher.id }}">
+    <div class="item-in2">  
+        <span class="first-name2" 
+              contenteditable="true"
+              data-field="first_name">{{ teacher.first_name }}</span>
+        
+        <span class="last-name2" 
+              contenteditable="true"
+              data-field="last_name">{{ teacher.last_name }}</span>
+    </div>
+</div>
 
+{% endfor %}
+---------------------------
+
+<table class="teachers-table">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Фамилия</th>
+        <th>Имя</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for teacher in teachers %}
+      <tr>
+        <td>{{ teacher.id }}</td>
+        <td contenteditable="true" 
+            data-field="last_name" 
+            data-id="{{ teacher.id }}">
+          {{ teacher.last_name }}
+        </td>
+        <td contenteditable="true" 
+            data-field="first_name" 
+            data-id="{{ teacher.id }}">
+          {{ teacher.first_name }}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  
+  <script>
+
+    //для апдейта и ввода данных с поля
+document.querySelectorAll('[contenteditable]').forEach(element => {
+  element.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const id = this.getAttribute('data-id');
+      const field = this.getAttribute('data-field');
+      const value = this.innerText.trim(); // Обрезаем пробелы
+
+      fetch('/update_teacher', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id: id,
+          field: field,
+          value: value
+        })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          // подсветка зелёным на 1 секунду
+          this.style.backgroundColor = '#e6ffe6';
+          setTimeout(() => {
+            this.style.backgroundColor = '';
+          }, 1000);
+        } else {
+          console.error('Ошибка:', data.error);
+        }
+      })
+      .catch(error => {
+        console.error('Ошибка сети:', error);
+      });
+    }
+  });
+});
+
+  </script>
 {% endblock %}

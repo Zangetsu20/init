@@ -9,15 +9,18 @@
 <h1>Все записи</h1>
 
 <div class="row">
-
+    
     {% for post in posts %}
     <div class="item">
-        <div class="item-in">  <!---- d-flex align-items-center px-3 -->
+        <div class="item-in">  
             <span class="first-name">{{ post.firstname }}</span>
             <span class="last-name">{{ post.lastname }}</span>
             <span class="d">{{ post.d }}</span>
         </div>
     </div>
+    
+
+
   {% endfor %}
 </div>
 

@@ -1,16 +1,24 @@
-from flask import Flask, render_template, request, redirect, flash, url_for
+from flask import Flask, render_template, request, redirect, flash, url_for, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+from markupsafe import escape #XSS защита
+#from flask_wtf.csrf import CSRFProtect #CSRF защита
+#from flask_wtf.csrf import generate_csrf
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///newf.db'
 import os
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', os.urandom(24).hex())
+#csrf = CSRFProtect(app) #csrf защита
 db = SQLAlchemy(app)
 bcrypt = Bcrypt(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
+
+#@app.context_processor
+#def inject_csrf():
+#    return dict(csrf_token=generate_csrf)  
 
 # User model
 class User(db.Model, UserMixin):
@@ -27,9 +35,9 @@ class Graf(db.Model):
 
 # создание teachers таблицы
 class Teachers(db.Model):
-    teachers_id = db.Column(db.Integer, primary_key=True)
-    teachers_first_name = db.Column(db.Text)
-    teachers_last_name = db.Column(db.Text)
+    id = db.Column(db.Integer, primary_key=True)
+    first_name = db.Column(db.Text)
+    last_name = db.Column(db.Text)
     
 # создание teachers_subject таблицы
 class Teachers_subject(db.Model):
@@ -68,20 +76,63 @@ class Grades(db.Model):
     grades_grade = db.Column(db.Text, nullable=False)
     grades_date = db.Column(db.Date, nullable=False)
 
+
+# Create database tables (применить создание таблиц, должно быть в конце после создания всех таблиц)
+with app.app_context():
+    db.create_all()
+
 # User loader for Flask-Login
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-# Create database tables
-with app.app_context():
-    db.create_all()
+# запрос данных с таблицы
+@app.route("/create")
+def show_teachers():
+    teachers = Teachers.query.all()
+    return render_template('create.html', teachers=teachers)
 
+#тест выода\редактирования
+#@csrf.exempt #разкоментировать для отключения csrf 
+@app.route('/update_teacher', methods=['POST'])
+def update_teacher():
+    try:
+        data = request.get_json()
+        
+        if not data or 'id' not in data:
+            return jsonify(error="Неверный формат данных"), 400
+        
+        teacher = Teachers.query.get(data['id'])
+        if not teacher:
+            return jsonify(error="Учитель не найден"), 404         
+          
+        # Защита от XSS(ввода скриптов в поля)            
+        safe_value = escape(data['value'])
+    
+        if data['field'] == 'first_name':
+            teacher.first_name = data['value']
+        elif data['field'] == 'last_name':
+            teacher.last_name = data['value']
+        else:
+            return jsonify(error="Недопустимое поле"), 400
+        
+        db.session.commit()
+        return jsonify(success=True)
+    
+    except Exception as e:
+        db.session.rollback()
+        return jsonify(error=str(e)), 500
+
+
+
+
+#что это?
 @app.route("/index")
 @app.route("/")
 def index():
     return render_template('index.html')
 
+#данные к тестовой первой таблицы из БД
 @app.route("/posts")
 @login_required
 def posts():
