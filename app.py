@@ -99,20 +99,19 @@ def update_teacher():
     try:
         data = request.get_json()
         
-        if not data or 'id' not in data:
-            return jsonify(error="Неверный формат данных"), 400
+        # Проверка наличия всех необходимых полей
+        if not data or 'id' not in data or 'field' not in data or 'value' not in data:
+            return jsonify(error="Неверный формат данных: отсутствуют обязательные поля"), 400
         
         teacher = Teachers.query.get(data['id'])
         if not teacher:
-            return jsonify(error="Учитель не найден"), 404         
+            return jsonify(error="Учитель не найден"), 404
           
-        # Защита от XSS(ввода скриптов в поля)            
-        safe_value = escape(data['value'])
-    
+        # Обновляем поле 
         if data['field'] == 'first_name':
-            teacher.first_name = data['value']
+            teacher.first_name = escape(data['value'])
         elif data['field'] == 'last_name':
-            teacher.last_name = data['value']
+            teacher.last_name = escape(data['value']) 
         else:
             return jsonify(error="Недопустимое поле"), 400
         
