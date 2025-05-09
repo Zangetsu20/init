@@ -1,27 +1,50 @@
 {% extends 'base.html' %}
 
 {% block title %}
-Все записи
 {% endblock %}
 
 {% block content %}
 
-<h1>Все записи</h1>
+<!-- Tabs Navigation -->
+<ul class="nav nav-tabs mb-4" id="myTab" role="tablist">
+    {% for subject in subjects %}
+    <li class="nav-item" role="presentation">
+        <button class="nav-link {% if loop.first %}active{% endif %}" 
+                id="{{ subject.id }}-tab" 
+                data-bs-toggle="tab" 
+                data-bs-target="#{{ subject.id }}" 
+                type="button" 
+                role="tab" 
+                aria-controls="{{ subject.id }}" 
+                aria-selected="{% if loop.first %}true{% else %}false{% endif %}">
+            {{ subject.subject_name }}
+        </button>
+    </li>
+    {% endfor %}
+</ul>
 
-<div class="row">
-    
-    {% for post in posts %}
-    <div class="item">
-        <div class="item-in">  
-            <span class="first-name">{{ post.firstname }}</span>
-            <span class="last-name">{{ post.lastname }}</span>
-            <span class="d">{{ post.d }}</span>
+<!-- Tab Content -->
+<div class="tab-content" id="myTabContent">
+    {% for subject in subjects %}
+    <div class="tab-pane fade {% if loop.first %}show active{% endif %}" 
+         id="{{ subject.id }}" 
+         role="tabpanel" 
+         aria-labelledby="{{ subject.id }}-tab">
+        <div class="row">
+            {% for post in posts %}
+            {% if post.subject_id == subject.id %}
+            <div class="item">
+                <div class="item-in">  
+                    <span class="first-name">{{ post.firstname }}</span>
+                    <span class="last-name">{{ post.lastname }}</span>
+                    <span class="d">{{ post.d }}</span>
+                </div>
+            </div>
+            {% endif %}
+            {% endfor %}
         </div>
     </div>
-    
-
-
-  {% endfor %}
+    {% endfor %}
 </div>
 
 {% endblock %}

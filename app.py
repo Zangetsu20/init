@@ -25,6 +25,7 @@ class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(150), unique=True, nullable=False)
     password = db.Column(db.String(60), nullable=False)
+    teacher_id = db.Column(db.Integer, db.ForeignKey('teachers.id')) 
 
 # Graf model
 class Graf(db.Model):
@@ -135,8 +136,22 @@ def index():
 @app.route("/posts")
 @login_required
 def posts():
+    # Получаем все записи Graf
     posts = Graf.query.all()
-    return render_template('posts.html', posts=posts)
+    
+        # Проверяем, есть ли у пользователя привязанный teacher_id
+    if not current_user.teacher_id:
+        flash('У вас нет привязанного профиля учителя', 'error')
+        return redirect(url_for('index'))
+    
+    # Получаем связки teacher-subject для текущего учителя
+    teacher_subjects = Teacher_subject.query.filter_by(teacher_id=current_user.teacher_id).all()
+    
+    subject_ids = [ts.subject_id for ts in teacher_subjects]
+    subjects = Subjects.query.filter(Subjects.id.in_(subject_ids)).all()
+    
+    return render_template('posts.html', posts=posts, subjects=subjects)
+
 
 @app.route("/create", methods=['POST', 'GET'])
 @login_required

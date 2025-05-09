@@ -58,3 +58,57 @@ header, footer {
     margin: 10px 0;
 }
 
+/* Tab styling */
+.nav-tabs {
+    border-bottom: 2px solid #dee2e6;
+}
+
+.nav-tabs .nav-link {
+    color: #0d6efd; /* Blue color for inactive tabs */
+    border: none;
+    padding: 10px 20px;
+    font-weight: 500;
+    margin-right: 5px;
+}
+
+.nav-tabs .nav-link:hover {
+    border: none;
+    color: #0a58ca;
+}
+
+.nav-tabs .nav-link.active {
+    color: #dc3545; /* Red color for active tab */
+    background-color: transparent;
+    border-bottom: 3px solid #dc3545;
+    font-weight: 600;
+}
+
+/* Post items styling */
+.item {
+    margin-bottom: 15px;
+}
+
+.item-in {
+    padding: 15px;
+    background-color: white;
+    border-radius: 5px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.first-name, .last-name, .d {
+    display: inline-block;
+    margin-right: 10px;
+}
+
+.first-name {
+    font-weight: bold;
+    width: 150px;
+}
+
+.last-name {
+    width: 150px;
+}
+
+.d {
+    color: #6c757d;
+}
