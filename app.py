@@ -40,41 +40,41 @@ class Teachers(db.Model):
     last_name = db.Column(db.Text)
     
 # создание teachers_subject таблицы
-class Teachers_subject(db.Model):
-    teacherSubject_id = db.Column(db.Integer, primary_key=True)
-    teacherSubject_teacher_id = db.Column(db.Integer, nullable=False)
-    teacherSubject_subject_id = db.Column(db.Integer, nullable=False)
+class Teacher_subject(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    teacher_id = db.Column(db.Integer, nullable=False)
+    subject_id = db.Column(db.Integer, nullable=False)
 
 # создание subject таблицы
 class Subjects(db.Model):
-    subject_id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.Integer, primary_key=True)
     subject_name = db.Column(db.Text, nullable=False, unique=True)
 
 # создание teachers_subject таблицы
-class Teachers_subject_class(db.Model):
-    teacherSubjectClas_id = db.Column(db.Integer, primary_key=True)
-    teacherSubjectClass_teacher_subject_id = db.Column(db.Integer, nullable=False)
-    teacherSubjectClass_class_id = db.Column(db.Integer, nullable=False)    
+class Teacher_subject_class(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    teacher_subject_id = db.Column(db.Integer, nullable=False)
+    class_id = db.Column(db.Integer, nullable=False)    
 
 # создание classes таблицы
 class Classes(db.Model):
-    classes_id = db.Column(db.Integer, primary_key=True)
-    classes_class_name = db.Column(db.Text, nullable=False, unique=True)
+    id = db.Column(db.Integer, primary_key=True)
+    class_name = db.Column(db.Text, nullable=False, unique=True)
 
 # создание students таблицы
 class Students(db.Model):
-    students_id = db.Column(db.Integer, primary_key=True)
-    students_first_name = db.Column(db.Text, nullable=False)
-    students_last_name = db.Column(db.Text, nullable=False)   
-    students_class_id = db.Column(db.Integer)
+    id = db.Column(db.Integer, primary_key=True)
+    first_name = db.Column(db.Text, nullable=False)
+    last_name = db.Column(db.Text, nullable=False)   
+    class_id = db.Column(db.Integer)
     
 # создание grades таблицы
 class Grades(db.Model):
-    grades_id = db.Column(db.Integer, primary_key=True)
-    grades_student_id = db.Column(db.Integer, nullable=False)
-    grades_teacher_subject_class_id = db.Column(db.Integer, nullable=False)   
-    grades_grade = db.Column(db.Text, nullable=False)
-    grades_date = db.Column(db.Date, nullable=False)
+    id = db.Column(db.Integer, primary_key=True)
+    student_id = db.Column(db.Integer, nullable=False)
+    teacher_subject_class_id = db.Column(db.Integer, nullable=False)   
+    grade = db.Column(db.Text, nullable=False)
+    date = db.Column(db.Date, nullable=False)
 
 
 # Create database tables (применить создание таблиц, должно быть в конце после создания всех таблиц)
