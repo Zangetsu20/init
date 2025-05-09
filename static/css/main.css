@@ -112,3 +112,28 @@ header, footer {
 .d {
     color: #6c757d;
 }
+
+/* Стили для вложенных вкладок */
+.nav-tabs .nav-link {
+    color: #0d6efd; /* Цвет неактивных вкладок */
+    border: none;
+    padding: 8px 16px;
+    font-weight: 500;
+}
+
+.nav-tabs .nav-link.active {
+    color: #dc3545; /* Цвет активной вкладки */
+    background-color: transparent;
+    border-bottom: 3px solid #dc3545;
+    font-weight: 600;
+}
+
+/* Отступы для вложенных вкладок */
+.tab-content .tab-pane {
+    padding: 15px 0;
+}
+
+/* Вложенные вкладки - меньший размер */
+.nav-tabs .nav-item.nested {
+    font-size: 0.9rem;
+}

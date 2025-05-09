@@ -1,50 +1,73 @@
 {% extends 'base.html' %}
 
-{% block title %}
-{% endblock %}
+{% block title %}Все записи{% endblock %}
 
 {% block content %}
+<div class="container mt-4">
+    <h1>Все записи</h1>
 
-<!-- Tabs Navigation -->
-<ul class="nav nav-tabs mb-4" id="myTab" role="tablist">
-    {% for subject in subjects %}
-    <li class="nav-item" role="presentation">
-        <button class="nav-link {% if loop.first %}active{% endif %}" 
-                id="{{ subject.id }}-tab" 
-                data-bs-toggle="tab" 
-                data-bs-target="#{{ subject.id }}" 
-                type="button" 
-                role="tab" 
-                aria-controls="{{ subject.id }}" 
-                aria-selected="{% if loop.first %}true{% else %}false{% endif %}">
-            {{ subject.subject_name }}
-        </button>
-    </li>
-    {% endfor %}
-</ul>
+    <!-- Основные вкладки (предметы) -->
+    <ul class="nav nav-tabs" id="subjectTabs" role="tablist">
+        {% for subject in subjects_with_classes %}
+        <li class="nav-item" role="presentation">
+            <button class="nav-link {% if loop.first %}active{% endif %}" 
+                    id="subject-{{ subject.subject_id }}-tab" 
+                    data-bs-toggle="tab" 
+                    data-bs-target="#subject-{{ subject.subject_id }}" 
+                    type="button" 
+                    role="tab" 
+                    aria-controls="subject-{{ subject.subject_id }}" 
+                    aria-selected="{% if loop.first %}true{% else %}false{% endif %}">
+                {{ subject.subject_name }}
+            </button>
+        </li>
+        {% endfor %}
+    </ul>
 
-<!-- Tab Content -->
-<div class="tab-content" id="myTabContent">
-    {% for subject in subjects %}
-    <div class="tab-pane fade {% if loop.first %}show active{% endif %}" 
-         id="{{ subject.id }}" 
-         role="tabpanel" 
-         aria-labelledby="{{ subject.id }}-tab">
-        <div class="row">
-            {% for post in posts %}
-            {% if post.subject_id == subject.id %}
-            <div class="item">
-                <div class="item-in">  
-                    <span class="first-name">{{ post.firstname }}</span>
-                    <span class="last-name">{{ post.lastname }}</span>
-                    <span class="d">{{ post.d }}</span>
+    <!-- Контент основных вкладок -->
+    <div class="tab-content p-3 border border-top-0 rounded-bottom" id="subjectTabsContent">
+        {% for subject in subjects_with_classes %}
+        <div class="tab-pane fade {% if loop.first %}show active{% endif %}" 
+             id="subject-{{ subject.subject_id }}" 
+             role="tabpanel" 
+             aria-labelledby="subject-{{ subject.subject_id }}-tab">
+            
+            <!-- Вложенные вкладки (классы) -->
+            <ul class="nav nav-tabs mt-3" id="classTabs-{{ subject.subject_id }}" role="tablist">
+                {% for class_info in subject.classes %}
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link {% if loop.first %}active{% endif %}" 
+                            id="class-{{ class_info.id }}-tab" 
+                            data-bs-toggle="tab" 
+                            data-bs-target="#class-{{ subject.subject_id }}-{{ class_info.id }}" 
+                            type="button" 
+                            role="tab" 
+                            aria-controls="class-{{ subject.subject_id }}-{{ class_info.id }}" 
+                            aria-selected="{% if loop.first %}true{% else %}false{% endif %}">
+                        {{ class_info.name }}
+                    </button>
+                </li>
+                {% endfor %}
+            </ul>
+            
+            <!-- Контент вложенных вкладок -->
+            <div class="tab-content p-3 border border-top-0 rounded-bottom" id="classTabsContent-{{ subject.subject_id }}">
+                {% for class_info in subject.classes %}
+                <div class="tab-pane fade {% if loop.first %}show active{% endif %}" 
+                     id="class-{{ subject.subject_id }}-{{ class_info.id }}" 
+                     role="tabpanel" 
+                     aria-labelledby="class-{{ class_info.id }}-tab">
+                    
+                    <h4 class="mt-3">Класс: {{ class_info.name }}</h4>
+                    <p>Здесь будет контент для класса {{ class_info.name }} по предмету {{ subject.subject_name }}</p>
+                    
+                    <!-- В этом месте можно добавить таблицу с учениками и оценками -->
                 </div>
+                {% endfor %}
             </div>
-            {% endif %}
-            {% endfor %}
+            
         </div>
+        {% endfor %}
     </div>
-    {% endfor %}
 </div>
-
 {% endblock %}

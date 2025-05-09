@@ -132,25 +132,53 @@ def update_teacher():
 def index():
     return render_template('index.html')
 
+
+
+#
 #данные к тестовой первой таблицы из БД
 @app.route("/posts")
 @login_required
 def posts():
-    # Получаем все записи Graf
-    posts = Graf.query.all()
-    
-        # Проверяем, есть ли у пользователя привязанный teacher_id
+    # Проверяем привязку учителя
     if not current_user.teacher_id:
         flash('У вас нет привязанного профиля учителя', 'error')
         return redirect(url_for('index'))
     
-    # Получаем связки teacher-subject для текущего учителя
-    teacher_subjects = Teacher_subject.query.filter_by(teacher_id=current_user.teacher_id).all()
+    teacher_id = current_user.teacher_id
     
-    subject_ids = [ts.subject_id for ts in teacher_subjects]
-    subjects = Subjects.query.filter(Subjects.id.in_(subject_ids)).all()
+    # Получаем все предметы учителя с классами
+    subjects_with_classes = []
     
-    return render_template('posts.html', posts=posts, subjects=subjects)
+    # 1. Находим все предметы учителя
+    teacher_subjects = Teacher_subject.query.filter_by(teacher_id=teacher_id).all()
+    
+    for ts in teacher_subjects:
+        subject = Subjects.query.get(ts.subject_id)
+        if not subject:
+            continue
+        
+        # 2. Для каждого предмета находим классы
+        class_links = Teacher_subject_class.query.filter_by(
+            teacher_subject_id=ts.id
+        ).all()
+        
+        classes = []
+        for cl in class_links:
+            class_info = Classes.query.get(cl.class_id)
+            if class_info:
+                classes.append({
+                    'id': class_info.id,
+                    'name': class_info.class_name
+                })
+        
+        if classes:  # Добавляем только предметы с классами
+            subjects_with_classes.append({
+                'subject_id': subject.id,
+                'subject_name': subject.subject_name,
+                'classes': classes
+            })
+    
+    return render_template('posts.html', subjects_with_classes=subjects_with_classes)
 
 
 @app.route("/create", methods=['POST', 'GET'])
