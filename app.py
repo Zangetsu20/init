@@ -139,17 +139,16 @@ def index():
 @app.route("/posts")
 @login_required
 def posts():
-    # Проверяем привязку учителя
     if not current_user.teacher_id:
         flash('У вас нет привязанного профиля учителя', 'error')
         return redirect(url_for('index'))
     
     teacher_id = current_user.teacher_id
     
-    # Получаем все предметы учителя с классами
-    subjects_with_classes = []
+    # Получаем все предметы учителя с классами и студентами
+    subjects_data = []
     
-    # 1. Находим все предметы учителя
+    # Находим все предметы учителя
     teacher_subjects = Teacher_subject.query.filter_by(teacher_id=teacher_id).all()
     
     for ts in teacher_subjects:
@@ -157,28 +156,61 @@ def posts():
         if not subject:
             continue
         
-        # 2. Для каждого предмета находим классы
+        # Находим все классы для этого предмета
         class_links = Teacher_subject_class.query.filter_by(
             teacher_subject_id=ts.id
         ).all()
         
-        classes = []
+        classes_data = []
         for cl in class_links:
             class_info = Classes.query.get(cl.class_id)
-            if class_info:
-                classes.append({
-                    'id': class_info.id,
-                    'name': class_info.class_name
+            if not class_info:
+                continue
+            
+            # Получаем всех студентов класса
+            students = Students.query.filter_by(class_id=class_info.id)\
+                .order_by(Students.last_name, Students.first_name).all()
+            
+            # Получаем все оценки для этих студентов по предмету
+            students_grades = []
+            all_dates = set()
+            
+            for student in students:
+                grades = Grades.query.filter_by(
+                    student_id=student.id,
+                    teacher_subject_class_id=cl.id
+                ).order_by(Grades.date).all()
+                
+                grades_dict = {}
+                for grade in grades:
+                    date_str = grade.date.strftime('%d.%m')  # Формат ДД.ММ
+                    grades_dict[date_str] = grade.grade
+                    all_dates.add(date_str)
+                
+                students_grades.append({
+                    'student_id': student.id,
+                    'last_name': student.last_name,
+                    'first_name': student.first_name,
+                    'grades': grades_dict
                 })
+            
+            sorted_dates = sorted(all_dates)
+            
+            classes_data.append({
+                'class_id': class_info.id,
+                'class_name': class_info.class_name,  # Название класса
+                'students': students_grades,
+                'dates': sorted_dates
+            })
         
-        if classes:  # Добавляем только предметы с классами
-            subjects_with_classes.append({
+        if classes_data:
+            subjects_data.append({
                 'subject_id': subject.id,
                 'subject_name': subject.subject_name,
-                'classes': classes
+                'classes': classes_data
             })
     
-    return render_template('posts.html', subjects_with_classes=subjects_with_classes)
+    return render_template('posts.html', subjects_data=subjects_data)
 
 
 @app.route("/create", methods=['POST', 'GET'])

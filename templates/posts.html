@@ -8,7 +8,7 @@
 
     <!-- Основные вкладки (предметы) -->
     <ul class="nav nav-tabs" id="subjectTabs" role="tablist">
-        {% for subject in subjects_with_classes %}
+        {% for subject in subjects_data %}
         <li class="nav-item" role="presentation">
             <button class="nav-link {% if loop.first %}active{% endif %}" 
                     id="subject-{{ subject.subject_id }}-tab" 
@@ -26,7 +26,7 @@
 
     <!-- Контент основных вкладок -->
     <div class="tab-content p-3 border border-top-0 rounded-bottom" id="subjectTabsContent">
-        {% for subject in subjects_with_classes %}
+        {% for subject in subjects_data %}
         <div class="tab-pane fade {% if loop.first %}show active{% endif %}" 
              id="subject-{{ subject.subject_id }}" 
              role="tabpanel" 
@@ -37,14 +37,14 @@
                 {% for class_info in subject.classes %}
                 <li class="nav-item" role="presentation">
                     <button class="nav-link {% if loop.first %}active{% endif %}" 
-                            id="class-{{ class_info.id }}-tab" 
+                            id="class-{{ class_info.class_id }}-tab" 
                             data-bs-toggle="tab" 
-                            data-bs-target="#class-{{ subject.subject_id }}-{{ class_info.id }}" 
+                            data-bs-target="#class-{{ subject.subject_id }}-{{ class_info.class_id }}" 
                             type="button" 
                             role="tab" 
-                            aria-controls="class-{{ subject.subject_id }}-{{ class_info.id }}" 
+                            aria-controls="class-{{ subject.subject_id }}-{{ class_info.class_id }}" 
                             aria-selected="{% if loop.first %}true{% else %}false{% endif %}">
-                        {{ class_info.name }}
+                        {{ class_info.class_name }}  <!-- Название класса -->
                     </button>
                 </li>
                 {% endfor %}
@@ -54,18 +54,42 @@
             <div class="tab-content p-3 border border-top-0 rounded-bottom" id="classTabsContent-{{ subject.subject_id }}">
                 {% for class_info in subject.classes %}
                 <div class="tab-pane fade {% if loop.first %}show active{% endif %}" 
-                     id="class-{{ subject.subject_id }}-{{ class_info.id }}" 
+                     id="class-{{ subject.subject_id }}-{{ class_info.class_id }}" 
                      role="tabpanel" 
-                     aria-labelledby="class-{{ class_info.id }}-tab">
+                     aria-labelledby="class-{{ class_info.class_id }}-tab">
                     
-                    <h4 class="mt-3">Класс: {{ class_info.name }}</h4>
-                    <p>Здесь будет контент для класса {{ class_info.name }} по предмету {{ subject.subject_name }}</p>
+                    <h4 class="mb-3">Класс: {{ class_info.class_name }}</h4>
                     
-                    <!-- В этом месте можно добавить таблицу с учениками и оценками -->
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width: 50px">№</th>
+                                    <th style="width: 250px">Фамилия Имя</th>
+                                    {% for date in class_info.dates %}
+                                    <th>{{ date }}</th>
+                                    {% endfor %}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for student in class_info.students %}
+                                <tr>
+                                    <td>{{ loop.index }}</td>
+                                    <td>{{ student.last_name }} {{ student.first_name }}</td>
+                                    {% for date in class_info.dates %}
+                                    <td class="text-center {% if student.grades.get(date) %}bg-warning bg-opacity-10{% endif %}">
+                                        {{ student.grades.get(date, '') }}
+                                    </td>
+                                    {% endfor %}
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
                 </div>
                 {% endfor %}
             </div>
-            
         </div>
         {% endfor %}
     </div>

@@ -137,3 +137,39 @@ header, footer {
 .nav-tabs .nav-item.nested {
     font-size: 0.9rem;
 }
+
+
+
+
+
+
+/* Стили для таблицы оценок */
+.table-grades {
+    font-size: 0.9rem;
+}
+
+.table-grades th {
+    white-space: nowrap;
+    vertical-align: middle;
+    background-color: #f8f9fa;
+}
+
+.table-grades td {
+    vertical-align: middle;
+}
+
+/* Подсветка ячеек с оценками */
+.table-grades td:not(:first-child) {
+    background-color: rgba(255, 255, 0, 0.1);
+}
+
+/* Фиксированная ширина для первых колонок */
+.table-grades th:first-child,
+.table-grades td:first-child {
+    width: 80px;
+}
+
+.table-grades th:nth-child(2),
+.table-grades td:nth-child(2) {
+    width: 200px;
+}
