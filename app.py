@@ -139,27 +139,46 @@ def index():
 @app.route("/posts")
 @login_required
 def posts():
-    if not current_user.teacher_id:
-        flash('У вас нет привязанного профиля учителя', 'error')
-        return redirect(url_for('index'))
+    # Проверяем, является ли пользователь администратором
+    is_admin = current_user.teacher_id == 12
     
-    teacher_id = current_user.teacher_id
+    if is_admin:
+        # Админ видит ВСЕ предметы
+        subjects = Subjects.query.order_by(Subjects.subject_name).all()
+    else:
+        # Обычный учитель видит только свои предметы
+        if not current_user.teacher_id:
+            flash('У вас нет привязанного профиля учителя', 'error')
+            return redirect(url_for('index'))
+        
+        teacher_id = current_user.teacher_id
+        teacher_subjects = Teacher_subject.query.filter_by(teacher_id=teacher_id).all()
+        subject_ids = [ts.subject_id for ts in teacher_subjects]
+        subjects = Subjects.query.filter(Subjects.id.in_(subject_ids)).order_by(Subjects.subject_name).all()
     
-    # Получаем все предметы учителя с классами и студентами
+    # Формируем данные для шаблона
     subjects_data = []
     
-    # Находим все предметы учителя
-    teacher_subjects = Teacher_subject.query.filter_by(teacher_id=teacher_id).all()
-    
-    for ts in teacher_subjects:
-        subject = Subjects.query.get(ts.subject_id)
-        if not subject:
-            continue
-        
-        # Находим все классы для этого предмета
-        class_links = Teacher_subject_class.query.filter_by(
-            teacher_subject_id=ts.id
-        ).all()
+    for subject in subjects:
+        if is_admin:
+            # Для админа - все классы, где преподаётся этот предмет
+            teacher_subjects = Teacher_subject.query.filter_by(subject_id=subject.id).all()
+            teacher_subject_ids = [ts.id for ts in teacher_subjects]
+            class_links = Teacher_subject_class.query.filter(
+                Teacher_subject_class.teacher_subject_id.in_(teacher_subject_ids)
+            ).all()
+        else:
+            # Для обычного учителя - только его классы
+            teacher_subject = Teacher_subject.query.filter_by(
+                teacher_id=current_user.teacher_id,
+                subject_id=subject.id
+            ).first()
+            if not teacher_subject:
+                continue
+            
+            class_links = Teacher_subject_class.query.filter_by(
+                teacher_subject_id=teacher_subject.id
+            ).all()
         
         classes_data = []
         for cl in class_links:
@@ -167,11 +186,19 @@ def posts():
             if not class_info:
                 continue
             
-            # Получаем всех студентов класса
+            # Получаем имя преподавателя (для админа)
+            teacher_name = ""
+            if is_admin:
+                ts = Teacher_subject.query.get(cl.teacher_subject_id)
+                if ts:
+                    teacher = Teachers.query.get(ts.teacher_id)
+                    if teacher:
+                        teacher_name = f"{teacher.last_name} {teacher.first_name}"
+            
+            # Получаем студентов
             students = Students.query.filter_by(class_id=class_info.id)\
                 .order_by(Students.last_name, Students.first_name).all()
             
-            # Получаем все оценки для этих студентов по предмету
             students_grades = []
             all_dates = set()
             
@@ -183,24 +210,22 @@ def posts():
                 
                 grades_dict = {}
                 for grade in grades:
-                    date_str = grade.date.strftime('%d.%m')  # Формат ДД.ММ
+                    date_str = grade.date.strftime('%d.%m')
                     grades_dict[date_str] = grade.grade
                     all_dates.add(date_str)
                 
                 students_grades.append({
-                    'student_id': student.id,
                     'last_name': student.last_name,
                     'first_name': student.first_name,
                     'grades': grades_dict
                 })
             
-            sorted_dates = sorted(all_dates)
-            
             classes_data.append({
                 'class_id': class_info.id,
-                'class_name': class_info.class_name,  # Название класса
+                'class_name': class_info.class_name,
+                'teacher_name': teacher_name,
                 'students': students_grades,
-                'dates': sorted_dates
+                'dates': sorted(all_dates)
             })
         
         if classes_data:
@@ -210,7 +235,9 @@ def posts():
                 'classes': classes_data
             })
     
-    return render_template('posts.html', subjects_data=subjects_data)
+    return render_template('posts.html', 
+                         subjects_data=subjects_data,
+                         is_admin=is_admin)
 
 
 @app.route("/create", methods=['POST', 'GET'])
