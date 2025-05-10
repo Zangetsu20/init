@@ -28,11 +28,11 @@ class User(db.Model, UserMixin):
     teacher_id = db.Column(db.Integer, db.ForeignKey('teachers.id')) 
 
 # Graf model
-class Graf(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    firstname = db.Column(db.String(300), nullable=False)
-    lastname = db.Column(db.String(300), nullable=False)
-    d = db.Column(db.String(300), nullable=False)
+#class Graf(db.Model):
+#    id = db.Column(db.Integer, primary_key=True)
+#   firstname = db.Column(db.String(300), nullable=False)
+#    lastname = db.Column(db.String(300), nullable=False)
+#    d = db.Column(db.String(300), nullable=False)
 
 # создание teachers таблицы
 class Teachers(db.Model):
@@ -248,7 +248,7 @@ def create():
         lastname = request.form['lastname']
         d = request.form['d']
         
-        post = Graf(firstname=firstname, lastname=lastname, d=d)
+        #post = Graf(firstname=firstname, lastname=lastname, d=d) # добавляет в graf новую строку
         
         try:
             db.session.add(post)
