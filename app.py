@@ -251,7 +251,7 @@ def create():
         #post = Graf(firstname=firstname, lastname=lastname, d=d) # добавляет в graf новую строку
         
         try:
-            db.session.add(post)
+            #db.session.add(post)
             db.session.commit()
             flash('Данные успешно добавлены!', 'success')
             return redirect('/')
