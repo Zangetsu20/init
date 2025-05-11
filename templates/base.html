@@ -27,12 +27,37 @@
 
 <!-- Правая часть: новая кнопка, "Добавить запись" и авторизация -->
 <div class="d-flex align-items-center gap-3">
-<!-- Изменяем только кнопку "Обновить данные" -->
+<!-- Заменяем кнопку на эту версию -->
 {% if current_user.is_authenticated %}
-    <a href="{{ url_for('download_excel') }}" class="btn btn-info btn-sm">
-        <i class="bi bi-download"></i> Скачать Excel
+    <a href="{{ url_for('download_all_zip') }}" class="btn btn-info btn-sm">
+        <i class="bi bi-file-earmark-zip"></i> Скачать Excel
     </a>
 {% endif %}
+
+<!-- Добавляем этот скрипт перед закрывающим </body> -->
+<script>
+document.getElementById('downloadExcelBtn').addEventListener('click', function(e) {
+    e.preventDefault();
+    const subjectId = getCurrentSubjectId(); // Нужно реализовать эту функцию
+    if (subjectId) {
+        window.location.href = `/download_excel/${subjectId}`;
+    } else {
+        alert('Пожалуйста, выберите предмет для скачивания');
+    }
+});
+
+function getCurrentSubjectId() {
+    // Реализуйте логику определения текущего выбранного subject_id
+    // Например, если у вас есть активная вкладка:
+    const activeTab = document.querySelector('.nav-link.active');
+    if (activeTab) {
+        const tabId = activeTab.id;
+        const match = tabId.match(/subject-(\d+)-tab/);
+        if (match) return match[1];
+    }
+    return null;
+}
+</script>
 
     <!-- Кнопка "Добавить запись" — отображается только если пользователь авторизован -->
     {% if current_user.is_authenticated %}

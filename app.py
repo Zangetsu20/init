@@ -8,6 +8,9 @@ from openpyxl import Workbook
 from io import BytesIO
 from flask import send_file
 from datetime import datetime
+import zipfile
+import tempfile
+import os
 #from flask_wtf.csrf import CSRFProtect #CSRF защита
 #from flask_wtf.csrf import generate_csrf
 
@@ -136,114 +139,6 @@ def update_teacher():
 @app.route("/")
 def index():
     return render_template('index.html')
-
-
-@app.route('/download_excel')
-@login_required
-def download_excel():
-    # Проверяем, является ли пользователь администратором
-    is_admin = current_user.teacher_id == 12
-    
-    # Получаем данные так же, как в функции posts()
-    if is_admin:
-        subjects = Subjects.query.order_by(Subjects.subject_name).all()
-    else:
-        if not current_user.teacher_id:
-            flash('У вас нет привязанного профиля учителя', 'error')
-            return redirect(url_for('index'))
-        
-        teacher_id = current_user.teacher_id
-        teacher_subjects = Teacher_subject.query.filter_by(teacher_id=teacher_id).all()
-        subject_ids = [ts.subject_id for ts in teacher_subjects]
-        subjects = Subjects.query.filter(Subjects.id.in_(subject_ids)).order_by(Subjects.subject_name).all()
-    
-    # Создаем Excel-файл
-    wb = Workbook()
-    ws = wb.active
-    ws.title = "Оценки"
-    
-    # Записываем заголовок
-    ws.append(["Отчет об оценках", f"Сформирован: {datetime.now().strftime('%d.%m.%Y %H:%M')}"])
-    ws.append([])  # Пустая строка
-    
-    # Для каждого предмета
-    for subject in subjects:
-        ws.append([f"Предмет: {subject.subject_name}"])
-        
-        # Получаем классы для предмета
-        if is_admin:
-            teacher_subjects = Teacher_subject.query.filter_by(subject_id=subject.id).all()
-            teacher_subject_ids = [ts.id for ts in teacher_subjects]
-            class_links = Teacher_subject_class.query.filter(
-                Teacher_subject_class.teacher_subject_id.in_(teacher_subject_ids)
-            ).all()
-        else:
-            teacher_subject = Teacher_subject.query.filter_by(
-                teacher_id=current_user.teacher_id,
-                subject_id=subject.id
-            ).first()
-            if not teacher_subject:
-                continue
-            
-            class_links = Teacher_subject_class.query.filter_by(
-                teacher_subject_id=teacher_subject.id
-            ).all()
-        
-        # Для каждого класса
-        for cl in class_links:
-            class_info = Classes.query.get(cl.class_id)
-            if not class_info:
-                continue
-            
-            ws.append([f"Класс: {class_info.class_name}"])
-            
-            # Получаем студентов
-            students = Students.query.filter_by(class_id=class_info.id)\
-                .order_by(Students.last_name, Students.first_name).all()
-            
-            # Получаем все даты
-            grades = Grades.query.filter_by(teacher_subject_class_id=cl.id)\
-                .order_by(Grades.date).all()
-            dates = sorted({grade.date.strftime('%d.%m.%Y') for grade in grades})
-            
-            # Заголовки таблицы
-            headers = ["№", "Фамилия", "Имя"] + dates
-            ws.append(headers)
-            
-            # Данные студентов
-            for i, student in enumerate(students, 1):
-                row = [i, student.last_name, student.first_name]
-                
-                # Получаем оценки студента
-                student_grades = {}
-                for grade in Grades.query.filter_by(
-                    student_id=student.id,
-                    teacher_subject_class_id=cl.id
-                ):
-                    date_str = grade.date.strftime('%d.%m.%Y')
-                    student_grades[date_str] = grade.grade
-                
-                # Добавляем оценки
-                for date in dates:
-                    row.append(student_grades.get(date, ""))
-                
-                ws.append(row)
-            
-            ws.append([])  # Пустая строка между классами
-    
-    # Сохраняем в буфер
-    buffer = BytesIO()
-    wb.save(buffer)
-    buffer.seek(0)
-    
-    # Отправляем файл
-    return send_file(
-        buffer,
-        as_attachment=True,
-        download_name=f"grades_{datetime.now().strftime('%Y%m%d_%H%M')}.xlsx",
-        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-    )
-
 
 #
 #данные к тестовой первой таблицы из БД
@@ -431,6 +326,109 @@ def logout():
     logout_user()
     flash('Вы вышли из системы!', 'success')
     return redirect(url_for('index'))
+
+
+@app.route('/download_all_zip')
+@login_required
+def download_all_zip():
+    try:
+        # Создаем временный файл в памяти
+        buffer = BytesIO()
+        
+        # Получаем доступные предметы
+        if current_user.teacher_id == 12:  # Админ
+            subjects = Subjects.query.all()
+        else:
+            teacher_subjects = Teacher_subject.query.filter_by(
+                teacher_id=current_user.teacher_id
+            ).all()
+            subject_ids = [ts.subject_id for ts in teacher_subjects]
+            subjects = Subjects.query.filter(Subjects.id.in_(subject_ids)).all()
+
+        # Создаем ZIP в памяти
+        with zipfile.ZipFile(buffer, 'w', zipfile.ZIP_DEFLATED) as zipf:
+            for subject in subjects:
+                # Создаем Excel файл в памяти
+                excel_buffer = BytesIO()
+                wb = Workbook()
+                if 'Sheet' in wb.sheetnames:
+                    wb.remove(wb['Sheet'])
+
+                # Получаем классы для предмета
+                if current_user.teacher_id == 12:
+                    teacher_subjects = Teacher_subject.query.filter_by(subject_id=subject.id).all()
+                    teacher_subject_ids = [ts.id for ts in teacher_subjects]
+                    class_links = Teacher_subject_class.query.filter(
+                        Teacher_subject_class.teacher_subject_id.in_(teacher_subject_ids)
+                    ).all()
+                else:
+                    teacher_subject = Teacher_subject.query.filter_by(
+                        teacher_id=current_user.teacher_id,
+                        subject_id=subject.id
+                    ).first()
+                    if not teacher_subject:
+                        continue
+                    class_links = Teacher_subject_class.query.filter_by(
+                        teacher_subject_id=teacher_subject.id
+                    ).all()
+
+                # Заполняем Excel данными
+                for cl in class_links:
+                    class_info = Classes.query.get(cl.class_id)
+                    if not class_info:
+                        continue
+                    
+                    ws = wb.create_sheet(title=class_info.class_name[:31])
+                    ws.append(["Предмет:", subject.subject_name])
+                    ws.append(["Класс:", class_info.class_name])
+                    ws.append([])
+                    
+                    students = Students.query.filter_by(class_id=class_info.id)\
+                        .order_by(Students.last_name, Students.first_name).all()
+                    
+                    grades = Grades.query.filter_by(teacher_subject_class_id=cl.id)\
+                        .order_by(Grades.date).all()
+                    dates = sorted({grade.date.strftime('%d.%m.%Y') for grade in grades})
+                    
+                    ws.append(["№", "Фамилия", "Имя"] + dates)
+                    
+                    for i, student in enumerate(students, 1):
+                        row = [i, student.last_name, student.first_name]
+                        grades_dict = {
+                            g.date.strftime('%d.%m.%Y'): g.grade 
+                            for g in Grades.query.filter_by(
+                                student_id=student.id,
+                                teacher_subject_class_id=cl.id
+                            ).all()
+                        }
+                        row.extend(grades_dict.get(date, "") for date in dates)
+                        ws.append(row)
+                    
+                    ws.append([])
+
+                # Сохраняем Excel в буфер
+                if len(wb.sheetnames) > 0:
+                    wb.save(excel_buffer)
+                    excel_buffer.seek(0)
+                    zipf.writestr(f"{subject.subject_name}.xlsx", excel_buffer.getvalue())
+
+        buffer.seek(0)
+        
+        # Отправляем ZIP-архив
+        return send_file(
+            buffer,
+            as_attachment=True,
+            download_name=f"grades_{datetime.now().strftime('%Y%m%d_%H%M')}.zip",
+            mimetype='application/zip'
+        )
+
+    except Exception as e:
+        app.logger.error(f"Error generating ZIP: {str(e)}")
+        flash(f'Ошибка при создании архива: {str(e)}', 'error')
+        return redirect(url_for('posts'))
+
+
+
 
 if __name__ == '__main__':
     app.run(debug=True)
