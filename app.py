@@ -3,6 +3,11 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from markupsafe import escape #XSS защита
+# Добавляем в начало файла (после других импортов)
+from openpyxl import Workbook
+from io import BytesIO
+from flask import send_file
+from datetime import datetime
 #from flask_wtf.csrf import CSRFProtect #CSRF защита
 #from flask_wtf.csrf import generate_csrf
 
@@ -132,6 +137,112 @@ def update_teacher():
 def index():
     return render_template('index.html')
 
+
+@app.route('/download_excel')
+@login_required
+def download_excel():
+    # Проверяем, является ли пользователь администратором
+    is_admin = current_user.teacher_id == 12
+    
+    # Получаем данные так же, как в функции posts()
+    if is_admin:
+        subjects = Subjects.query.order_by(Subjects.subject_name).all()
+    else:
+        if not current_user.teacher_id:
+            flash('У вас нет привязанного профиля учителя', 'error')
+            return redirect(url_for('index'))
+        
+        teacher_id = current_user.teacher_id
+        teacher_subjects = Teacher_subject.query.filter_by(teacher_id=teacher_id).all()
+        subject_ids = [ts.subject_id for ts in teacher_subjects]
+        subjects = Subjects.query.filter(Subjects.id.in_(subject_ids)).order_by(Subjects.subject_name).all()
+    
+    # Создаем Excel-файл
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Оценки"
+    
+    # Записываем заголовок
+    ws.append(["Отчет об оценках", f"Сформирован: {datetime.now().strftime('%d.%m.%Y %H:%M')}"])
+    ws.append([])  # Пустая строка
+    
+    # Для каждого предмета
+    for subject in subjects:
+        ws.append([f"Предмет: {subject.subject_name}"])
+        
+        # Получаем классы для предмета
+        if is_admin:
+            teacher_subjects = Teacher_subject.query.filter_by(subject_id=subject.id).all()
+            teacher_subject_ids = [ts.id for ts in teacher_subjects]
+            class_links = Teacher_subject_class.query.filter(
+                Teacher_subject_class.teacher_subject_id.in_(teacher_subject_ids)
+            ).all()
+        else:
+            teacher_subject = Teacher_subject.query.filter_by(
+                teacher_id=current_user.teacher_id,
+                subject_id=subject.id
+            ).first()
+            if not teacher_subject:
+                continue
+            
+            class_links = Teacher_subject_class.query.filter_by(
+                teacher_subject_id=teacher_subject.id
+            ).all()
+        
+        # Для каждого класса
+        for cl in class_links:
+            class_info = Classes.query.get(cl.class_id)
+            if not class_info:
+                continue
+            
+            ws.append([f"Класс: {class_info.class_name}"])
+            
+            # Получаем студентов
+            students = Students.query.filter_by(class_id=class_info.id)\
+                .order_by(Students.last_name, Students.first_name).all()
+            
+            # Получаем все даты
+            grades = Grades.query.filter_by(teacher_subject_class_id=cl.id)\
+                .order_by(Grades.date).all()
+            dates = sorted({grade.date.strftime('%d.%m.%Y') for grade in grades})
+            
+            # Заголовки таблицы
+            headers = ["№", "Фамилия", "Имя"] + dates
+            ws.append(headers)
+            
+            # Данные студентов
+            for i, student in enumerate(students, 1):
+                row = [i, student.last_name, student.first_name]
+                
+                # Получаем оценки студента
+                student_grades = {}
+                for grade in Grades.query.filter_by(
+                    student_id=student.id,
+                    teacher_subject_class_id=cl.id
+                ):
+                    date_str = grade.date.strftime('%d.%m.%Y')
+                    student_grades[date_str] = grade.grade
+                
+                # Добавляем оценки
+                for date in dates:
+                    row.append(student_grades.get(date, ""))
+                
+                ws.append(row)
+            
+            ws.append([])  # Пустая строка между классами
+    
+    # Сохраняем в буфер
+    buffer = BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+    
+    # Отправляем файл
+    return send_file(
+        buffer,
+        as_attachment=True,
+        download_name=f"grades_{datetime.now().strftime('%Y%m%d_%H%M')}.xlsx",
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
 
 
 #
