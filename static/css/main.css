@@ -139,7 +139,18 @@ header, footer {
 }
 
 
+/* Стили для редактируемых ячеек */
+[contenteditable="true"] {
+    min-width: 30px;
+    outline: none;
+    padding: 3px 5px;
+    border-radius: 3px;
+}
 
+[contenteditable="true"]:focus {
+    background-color: #f8f9fa;
+    box-shadow: 0 0 0 1px #86b7fe;
+}
 
 
 

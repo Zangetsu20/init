@@ -132,7 +132,48 @@ def update_teacher():
         return jsonify(error=str(e)), 500
 
 
-
+@app.route('/update_grade', methods=['POST'])
+@login_required
+def update_grade():
+    try:
+        data = request.get_json()
+        
+        # Проверяем обязательные поля
+        required_fields = ['student_id', 'date', 'teacher_subject_class_id', 'new_grade']
+        if not all(field in data for field in required_fields):
+            return jsonify({'success': False, 'error': 'Не хватает обязательных полей'}), 400
+        
+        # Преобразуем дату из формата DD.MM в объект date
+        day, month = map(int, data['date'].split('.'))
+        current_year = datetime.now().year
+        date_obj = datetime(current_year, month, day).date()
+        
+        # Ищем существующую оценку
+        grade = Grades.query.filter_by(
+            student_id=data['student_id'],
+            teacher_subject_class_id=data['teacher_subject_class_id'],
+            date=date_obj
+        ).first()
+        
+        if grade:
+            # Обновляем существующую оценку
+            grade.grade = data['new_grade']
+        else:
+            # Создаем новую запись
+            grade = Grades(
+                student_id=data['student_id'],
+                teacher_subject_class_id=data['teacher_subject_class_id'],
+                grade=data['new_grade'],
+                date=date_obj
+            )
+            db.session.add(grade)
+        
+        db.session.commit()
+        return jsonify({'success': True})
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 #что это?
 @app.route("/index")
@@ -223,7 +264,9 @@ def posts():
                 students_grades.append({
                     'last_name': student.last_name,
                     'first_name': student.first_name,
-                    'grades': grades_dict
+                    'grades': grades_dict,
+                    'student_id': student.id,  # Добавляем ID студента
+                    'teacher_subject_class_id': cl.id  # Добавляем ID связи преподаватель-предмет-класс
                 })
             
             classes_data.append({

@@ -106,7 +106,12 @@
                                     <td>{{ loop.index }}</td>
                                     <td>{{ student.last_name }} {{ student.first_name }}</td>
                                     {% for date in class_info.dates %}
-                                    <td class="text-center {% if student.grades.get(date) %}bg-warning bg-opacity-10{% endif %}">
+                                    <td class="text-center {% if student.grades.get(date) %}bg-warning bg-opacity-10{% endif %}"
+                                        contenteditable="true"
+                                        data-student-id="{{ student.student_id }}"
+                                        data-date="{{ date }}"
+                                        data-teacher-subject-class-id="{{ student.teacher_subject_class_id }}"
+                                        onkeydown="handleGradeEdit(event)">
                                         {{ student.grades.get(date, '') }}
                                     </td>
                                     {% endfor %}
@@ -125,4 +130,63 @@
     </div>
     {% endif %}
 </div>
+
+
+<script>
+function handleGradeEdit(event) {
+    if (event.key === 'Enter') {
+        event.preventDefault();
+        const cell = event.target;
+        const newValue = cell.textContent.trim();
+        const studentId = cell.dataset.studentId;
+        const dateStr = cell.dataset.date;
+        const teacherSubjectClassId = cell.dataset.teacherSubjectClassId;
+
+        // Сохраняем оригинальное значение на случай ошибки
+        const originalValue = cell.textContent;
+
+        // Визуальная обратная связь
+        cell.style.backgroundColor = '#fff9e6';
+
+        // Отправляем данные на сервер
+        fetch('/update_grade', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                student_id: studentId,
+                date: dateStr,
+                teacher_subject_class_id: teacherSubjectClassId,
+                new_grade: newValue
+            })
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Ошибка сервера');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                cell.style.backgroundColor = '#e6ffe6';
+                setTimeout(() => cell.style.backgroundColor = '', 1000);
+            } else {
+                throw new Error(data.error || 'Неизвестная ошибка');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            cell.textContent = originalValue;
+            cell.style.backgroundColor = '#ffe6e6';
+            setTimeout(() => cell.style.backgroundColor = '', 1000);
+        });
+
+        // Снимаем фокус с ячейки
+        cell.blur();
+    } else if (event.key === 'Escape') {
+        event.target.blur();
+    }
+}
+</script>
 {% endblock %}
