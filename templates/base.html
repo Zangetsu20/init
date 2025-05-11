@@ -23,11 +23,18 @@
             <li><a href="{{ url_for('posts') }}" class="nav-link px-2 link-dark">Оценки</a></li>
             <li><a href="{{ url_for('create') }}" class="nav-link px-2 link-dark">Посещение</a></li>
             <li><a href="{{ url_for('abot') }}" class="nav-link px-2 link-dark">График</a></li>
-            <li><a href="{{ url_for('index') }}" class="nav-link px-2 link-dark">Эксель</a></li>
-        </ul>
+         </ul>
 
-        <!-- Правая часть: кнопка "Добавить запись" и авторизация -->
+<!-- Правая часть: новая кнопка, "Добавить запись" и авторизация -->
 <div class="d-flex align-items-center gap-3">
+    <!-- Новая кнопка (например, "Обновить данные") — отображается только если пользователь авторизован -->
+    {% if current_user.is_authenticated %}
+        <button type="button" class="btn btn-info btn-sm" data-bs-toggle="modal"
+                data-bs-target="#updateDataModal">
+            Обновить данные
+        </button>
+    {% endif %}
+
     <!-- Кнопка "Добавить запись" — отображается только если пользователь авторизован -->
     {% if current_user.is_authenticated %}
         <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal"
