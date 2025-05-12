@@ -180,8 +180,67 @@
 
 
 <script>
-function addNewDate(){
+function addNewDate() {
+    // Получаем текущий год и месяц из URL или из данных на странице
+    const urlParams = new URLSearchParams(window.location.search);
+    const year = urlParams.get('year') || new Date().getFullYear();
+    const month = urlParams.get('month') || new Date().getMonth() + 1;
     
+    // Запрашиваем у пользователя день
+    const day = prompt("Введите день месяца (1-31):");
+    
+    if (!day || isNaN(day) || day < 1 || day > 31) {
+        alert("Некорректный день. Введите число от 1 до 31");
+        return;
+    }
+    
+    // Форматируем дату в формате YYYY-MM-DD
+    const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    
+    // Находим активную вкладку класса (текущий открытый класс)
+    const activeClassTab = document.querySelector('.tab-pane.active');
+    if (!activeClassTab) {
+        alert("Не найден активный класс");
+        return;
+    }
+    
+    // Получаем первый ряд с учеником
+    const firstStudentRow = activeClassTab.querySelector('tbody tr');
+    if (!firstStudentRow) {
+        alert("В этом классе нет учеников");
+        return;
+    }
+    
+    // Получаем необходимые данные из первого ученика
+    const studentId = firstStudentRow.querySelector('[data-student-id]').dataset.studentId;
+    const teacherSubjectClassId = firstStudentRow.querySelector('[data-teacher-subject-class-id]').dataset.teacherSubjectClassId;
+    
+    // Отправляем запрос на сервер
+    fetch('/update_grade', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            student_id: studentId,
+            date: dateStr,
+            teacher_subject_class_id: teacherSubjectClassId,
+            new_grade: " " // пробел вместо оценки
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Обновляем таблицу без перезагрузки страницы
+            updateTable(year, month);
+        } else {
+            throw new Error(data.error || 'Неизвестная ошибка');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Ошибка при добавлении даты: ' + error.message);
+    });
 }
 // Функция обновления таблицы
 function updateTable(year, month) {
