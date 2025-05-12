@@ -169,3 +169,13 @@ header, footer {
 .grade-error {
     background-color: rgba(220, 53, 69, 0.2) !important;
 }
+
+/* В main.css добавляем: */
+.table th, .table td {
+    padding: 0.3rem 0.5rem;
+    font-size: 0.9rem;
+}
+
+.table th {
+    white-space: nowrap;
+}

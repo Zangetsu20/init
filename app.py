@@ -144,9 +144,11 @@ def update_grade():
             return jsonify({'success': False, 'error': 'Не хватает обязательных полей'}), 400
         
         # Преобразуем дату из формата DD.MM в объект date
-        day, month = map(int, data['date'].split('.'))
-        current_year = datetime.now().year
-        date_obj = datetime(current_year, month, day).date()
+        date_str = data['date']
+        try:
+            date_obj = datetime.strptime(date_str, '%Y-%m-%d').date()
+        except ValueError as e:
+            return jsonify({'success': False, 'error': f'Неверный формат даты: {str(e)}'}), 400
         
         # Ищем существующую оценку
         grade = Grades.query.filter_by(
@@ -186,14 +188,16 @@ def index():
 @app.route("/posts")
 @login_required
 def posts():
+    # Получаем параметры фильтрации
+    selected_year = request.args.get('year', type=int, default=datetime.now().year)
+    selected_month = request.args.get('month', type=int, default=datetime.now().month)
+    
     # Проверяем, является ли пользователь администратором
     is_admin = current_user.teacher_id == 12
     
     if is_admin:
-        # Админ видит ВСЕ предметы
         subjects = Subjects.query.order_by(Subjects.subject_name).all()
     else:
-        # Обычный учитель видит только свои предметы
         if not current_user.teacher_id:
             flash('У вас нет привязанного профиля учителя', 'error')
             return redirect(url_for('index'))
@@ -203,19 +207,21 @@ def posts():
         subject_ids = [ts.subject_id for ts in teacher_subjects]
         subjects = Subjects.query.filter(Subjects.id.in_(subject_ids)).order_by(Subjects.subject_name).all()
     
-    # Формируем данные для шаблона
+    # Получаем доступные годы из базы
+    min_year = db.session.query(db.extract('year', db.func.min(Grades.date))).scalar() or datetime.now().year
+    max_year = db.session.query(db.extract('year', db.func.max(Grades.date))).scalar() or datetime.now().year
+    available_years = list(range(min_year, max_year + 1))
+    
     subjects_data = []
     
     for subject in subjects:
         if is_admin:
-            # Для админа - все классы, где преподаётся этот предмет
             teacher_subjects = Teacher_subject.query.filter_by(subject_id=subject.id).all()
             teacher_subject_ids = [ts.id for ts in teacher_subjects]
             class_links = Teacher_subject_class.query.filter(
                 Teacher_subject_class.teacher_subject_id.in_(teacher_subject_ids)
             ).all()
         else:
-            # Для обычного учителя - только его классы
             teacher_subject = Teacher_subject.query.filter_by(
                 teacher_id=current_user.teacher_id,
                 subject_id=subject.id
@@ -250,31 +256,36 @@ def posts():
             all_dates = set()
             
             for student in students:
-                grades = Grades.query.filter_by(
-                    student_id=student.id,
-                    teacher_subject_class_id=cl.id
+                # Фильтруем оценки по выбранному году и месяцу
+                grades = Grades.query.filter(
+                    Grades.student_id == student.id,
+                    Grades.teacher_subject_class_id == cl.id,
+                    db.extract('year', Grades.date) == selected_year,
+                    db.extract('month', Grades.date) == selected_month
                 ).order_by(Grades.date).all()
                 
                 grades_dict = {}
                 for grade in grades:
-                    date_str = grade.date.strftime('%d.%m')
-                    grades_dict[date_str] = grade.grade
-                    all_dates.add(date_str)
+                    day_str = grade.date.strftime('%d')  # Только день
+                    grades_dict[day_str] = grade.grade
+                    all_dates.add(day_str)
                 
                 students_grades.append({
                     'last_name': student.last_name,
                     'first_name': student.first_name,
-                    'grades': grades_dict,
-                    'student_id': student.id,  # Добавляем ID студента
-                    'teacher_subject_class_id': cl.id  # Добавляем ID связи преподаватель-предмет-класс
+                    'student_id': student.id,
+                    'teacher_subject_class_id': cl.id,
+                    'grades': grades_dict
                 })
+            
+            sorted_dates = sorted(all_dates)
             
             classes_data.append({
                 'class_id': class_info.id,
                 'class_name': class_info.class_name,
                 'teacher_name': teacher_name,
                 'students': students_grades,
-                'dates': sorted(all_dates)
+                'dates': sorted_dates
             })
         
         if classes_data:
@@ -286,8 +297,25 @@ def posts():
     
     return render_template('posts.html', 
                          subjects_data=subjects_data,
-                         is_admin=is_admin)
+                         is_admin=is_admin,
+                         available_years=available_years,
+                         available_months=list(range(1, 13)),
+                         selected_year=selected_year,
+                         selected_month=selected_month)
 
+@app.template_filter('month_name')
+def month_name_filter(month_num):
+    months = [
+        'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
+        'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'
+    ]
+    return months[month_num - 1] if 1 <= month_num <= 12 else str(month_num)
+    
+def get_available_years():
+    # Получаем минимальный и максимальный год из базы
+    min_year = db.session.query(db.extract('year', db.func.min(Grades.date))).scalar()
+    max_year = db.session.query(db.extract('year', db.func.max(Grades.date))).scalar()
+    return list(range(min_year, max_year + 1)) if min_year and max_year else [datetime.now().year]
 
 @app.route("/create", methods=['POST', 'GET'])
 @login_required
