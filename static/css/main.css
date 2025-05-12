@@ -1,21 +1,15 @@
-/* HEADER */
-.heder__img {
-    height: 48px;
-    width: 48px;
-}
-
+/* ===== GLOBAL STYLES ===== */
 body {
     margin: 0;
 }
+
 *,
 *:before,
 *:after {
     box-sizing: border-box;
 }
-header, footer {
-    padding: 20px;
-    background-color: #fafafa;
-}
+
+/* ===== LAYOUT ===== */
 .page {
     overflow: hidden;
     display: flex;
@@ -27,44 +21,27 @@ header, footer {
     max-width: 100vw;
     margin: 0 auto; 
     padding: 80px 40px;
-
     flex: 1 1 auto;
 }
 
-/* posts */
-
-.item {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 0px 8em;
-    margin-bottom: 2px;
-    border-bottom: 1px solid #ddd;      
-}
-.row
-{
-    border: 1px solid #ddd;
-    border-radius: 5px;
-}
-.item-in {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 1px 0em; 
-    padding: 1px;
-    
+header, footer {
+    padding: 20px;
+    background-color: #fafafa;
 }
 
-.sepertor {
-    border-bottom: 1px solid #eee;
-    margin: 10px 0;
+/* ===== HEADER ===== */
+.heder__img {
+    height: 48px;
+    width: 48px;
 }
 
-/* Tab styling */
+/* ===== TABS ===== */
 .nav-tabs {
     border-bottom: 2px solid #dee2e6;
 }
 
 .nav-tabs .nav-link {
-    color: #0d6efd; /* Blue color for inactive tabs */
+    color: #0d6efd;
     border: none;
     padding: 10px 20px;
     font-weight: 500;
@@ -77,24 +54,48 @@ header, footer {
 }
 
 .nav-tabs .nav-link.active {
-    color: #dc3545; /* Red color for active tab */
+    color: #dc3545;
     background-color: transparent;
     border-bottom: 3px solid #dc3545;
     font-weight: 600;
 }
 
-/* Post items styling */
+/* Nested tabs */
+.nav-tabs .nav-item.nested {
+    font-size: 0.9rem;
+}
+
+.tab-content .tab-pane {
+    padding: 15px 0;
+}
+
+/* ===== ITEMS/POSTS ===== */
 .item {
-    margin-bottom: 15px;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 0px 8em;
+    margin-bottom: 2px;
+    border-bottom: 1px solid #ddd;
 }
 
 .item-in {
-    padding: 15px;
-    background-color: white;
-    border-radius: 5px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 1px 0em;
+    padding: 1px;
 }
 
+.row {
+    border: 1px solid #ddd;
+    border-radius: 5px;
+}
+
+.sepertor {
+    border-bottom: 1px solid #eee;
+    margin: 10px 0;
+}
+
+/* Item text elements */
 .first-name, .last-name, .d {
     display: inline-block;
     margin-right: 10px;
@@ -113,33 +114,7 @@ header, footer {
     color: #6c757d;
 }
 
-/* Стили для вложенных вкладок */
-.nav-tabs .nav-link {
-    color: #0d6efd; /* Цвет неактивных вкладок */
-    border: none;
-    padding: 8px 16px;
-    font-weight: 500;
-}
-
-.nav-tabs .nav-link.active {
-    color: #dc3545; /* Цвет активной вкладки */
-    background-color: transparent;
-    border-bottom: 3px solid #dc3545;
-    font-weight: 600;
-}
-
-/* Отступы для вложенных вкладок */
-.tab-content .tab-pane {
-    padding: 15px 0;
-}
-
-/* Вложенные вкладки - меньший размер */
-.nav-tabs .nav-item.nested {
-    font-size: 0.9rem;
-}
-
-
-/* Стили для редактируемых ячеек */
+/* ===== EDITABLE FIELDS ===== */
 [contenteditable="true"] {
     min-width: 30px;
     outline: none;
@@ -152,20 +127,7 @@ header, footer {
     box-shadow: 0 0 0 1px #86b7fe;
 }
 
-/* В main.css добавляем: */
-.grade-changed {
-    background-color: rgba(255, 193, 7, 0.2) !important;
-}
-
-.grade-success {
-    background-color: rgba(40, 167, 69, 0.2) !important;
-}
-
-.grade-error {
-    background-color: rgba(220, 53, 69, 0.2) !important;
-}
-
-/* Стили для таблицы оценок */
+/* ===== GRADES TABLE ===== */
 .table-grades {
     font-size: 0.9rem;
 }
@@ -180,12 +142,11 @@ header, footer {
     vertical-align: middle;
 }
 
-/* Подсветка ячеек с оценками */
 .table-grades td:not(:first-child) {
     background-color: rgba(255, 255, 0, 0.1);
 }
 
-/* Фиксированная ширина для первых колонок */
+/* Fixed width columns */
 .table-grades th:first-child,
 .table-grades td:first-child {
     width: 80px;
@@ -194,4 +155,17 @@ header, footer {
 .table-grades th:nth-child(2),
 .table-grades td:nth-child(2) {
     width: 200px;
+}
+
+/* ===== GRADE STATES ===== */
+.grade-changed {
+    background-color: rgba(255, 193, 7, 0.2) !important;
+}
+
+.grade-success {
+    background-color: rgba(40, 167, 69, 0.2) !important;
+}
+
+.grade-error {
+    background-color: rgba(220, 53, 69, 0.2) !important;
 }
