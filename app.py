@@ -82,7 +82,7 @@ class Grades(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     student_id = db.Column(db.Integer, nullable=False)
     teacher_subject_class_id = db.Column(db.Integer, nullable=False)   
-    grade = db.Column(db.Text, nullable=False)
+    grade = db.Column(db.Text, nullable=True)
     date = db.Column(db.Date, nullable=False)
 
 
