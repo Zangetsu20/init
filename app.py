@@ -3,6 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from markupsafe import escape #XSS защита
+from sqlalchemy import UniqueConstraint
 # Добавляем в начало файла (после других импортов)
 from openpyxl import Workbook
 from io import BytesIO
@@ -84,6 +85,7 @@ class Grades(db.Model):
     teacher_subject_class_id = db.Column(db.Integer, nullable=False)   
     grade = db.Column(db.Text, nullable=True)
     date = db.Column(db.Date, nullable=False)
+    __table_args__ = (UniqueConstraint('student_id', 'date', 'teacher_subject_class_id', name='_student_date_tsc_uc'),)
 
 
 # Create database tables (применить создание таблиц, должно быть в конце после создания всех таблиц)

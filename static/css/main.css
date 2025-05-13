@@ -113,6 +113,54 @@ header, footer {
 .d {
     color: #6c757d;
 }
+.container {
+    max-width: 100%; 
+}
+
+.table-responsive {    
+    overflow-x: auto; /* Горизонтальная прокрутка */
+    max-width: 100%;
+}
+.button_container{
+    display: flex;
+}
+.mt-3{
+    margin-left: auto;
+}
+
+.table {
+    width: 100%; /* Таблица занимает всю доступную ширину */
+}
+
+/* Минимальная ширина для столбца "Фамилия Имя" */
+.table td:nth-child(2), .table th:nth-child(2) {
+    min-width: 150px; /* Минимальная ширина */
+    max-width: 200px;
+}
+
+/* Остальные столбцы */
+.table td:not(:nth-child(2)), .table th:not(:nth-child(2)) {
+    min-width: 40px; /* Минимальная ширина */
+    max-width: 40px; /* Максимальная ширина */
+    text-align: center; /* Выравнивание по центру */
+}
+
+/* Стиль для скролла */
+.table-responsive::-webkit-scrollbar {
+    width: 8px;
+}
+
+.table-responsive::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+.table-responsive::-webkit-scrollbar-thumb {
+    background: #888;
+}
+
+.table-responsive::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
 
 /* ===== EDITABLE FIELDS ===== */
 [contenteditable="true"] {

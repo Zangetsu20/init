@@ -130,12 +130,15 @@
                         В этом классе нет студентов
                     </div>
                     {% else %}
+                <div class="container">
                     <div class="table-responsive">
+                                            <div class="button_container">
                                                 <div class="mt-3">
                                                     <button class="btn btn-sm btn-outline-primary" onclick="addNewDate()">
                                                         <i class="bi bi-plus-circle"></i> Добавить дату
                                                     </button>
                                                 </div>
+                                            </div>
                         <table class="table table-bordered table-hover">
                             <thead class="table-light">
                                 <tr>
@@ -168,6 +171,7 @@
                         </table>
                     </div>
                     {% endif %}
+                </div>
                 </div>
                 {% endfor %}
             </div>
@@ -267,19 +271,28 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function handleGradeEdit(event) {
+    const cell = event.target;
     if (event.key === 'Enter') {
         event.preventDefault();
-        const cell = event.target;
-        const newValue = cell.textContent.trim();
-        const originalValue = cell.dataset.originalValue;
-        
-        if (newValue === originalValue) {
-            cell.blur();
-            return;
-        }
+        saveGrade(cell);
+    } else if (event.key === 'Escape') {
+        cell.textContent = cell.dataset.originalValue;
+        cell.blur();
+    }
+}
 
+function saveGrade(cell) {
+    const newValue = cell.textContent.trim();
+    const originalValue = cell.dataset.originalValue;
+
+    if (newValue === originalValue) {
+        cell.blur();
+        return;
+    }
+
+    // Добавляем небольшую задержку для гарантии выполнения blur
+    setTimeout(() => {
         cell.style.backgroundColor = 'rgba(255, 193, 7, 0.2)';
-        
         fetch('/update_grade', {
             method: 'POST',
             headers: {
@@ -297,7 +310,7 @@ function handleGradeEdit(event) {
             if (data.success) {
                 cell.style.backgroundColor = '#e6ffe6';
                 setTimeout(() => {
-                    cell.style.backgroundColor = 'rgba(255, 193, 7, 0.2)';
+                    cell.style.backgroundColor = '';
                     cell.dataset.originalValue = newValue;
                 }, 1000);
             } else {
@@ -310,19 +323,23 @@ function handleGradeEdit(event) {
             cell.style.backgroundColor = '#ffe6e6';
             setTimeout(() => cell.style.backgroundColor = '', 1000);
         });
-
-        cell.blur();
-    } else if (event.key === 'Escape') {
-        event.target.textContent = event.target.dataset.originalValue;
-        event.target.blur();
-    }
+    }, 0);
 }
 
 function initGradeEditors() {
     document.querySelectorAll('[contenteditable="true"]').forEach(cell => {
-        cell.addEventListener('focus', function() {
+        // Сохраняем оригинальное значение при начале редактирования
+        cell.addEventListener('focus', function () {
             this.dataset.originalValue = this.textContent;
         });
+
+        // Сохраняем изменения при выходе из поля
+        cell.addEventListener('blur', function () {
+            saveGrade(this);
+        });
+
+        // Обрабатываем Enter и Escape
+        cell.addEventListener('keydown', handleGradeEdit);
     });
 }
 
@@ -332,6 +349,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // Добавляем обработчик focus для восстановления значения при отмене
 document.querySelectorAll('[contenteditable="true"]').forEach(cell => {
     cell.addEventListener('focus', function() {
+        initGradeEditors();
         this.dataset.originalValue = this.textContent;
     });
 });
