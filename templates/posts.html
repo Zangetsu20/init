@@ -202,25 +202,78 @@ function addNewDate() {
     
     // 4. Находим активные вкладки
     const activeSubjectPane = document.querySelector('#subjectTabsContent .tab-pane.active');
-    const activeClassPane = activeSubjectPane.querySelector('.tab-pane.active');
+    const activeClassPane = activeSubjectPane?.querySelector('.tab-pane.active');
     
     if (!activeSubjectPane || !activeClassPane) {
         alert("Не удалось определить активный класс");
         return;
     }
     
-    // 5. Получаем данные из активного класса
-    const firstStudentRow = activeClassPane.querySelector('tbody tr');
-    if (!firstStudentRow) {
-        alert("В этом классе нет учеников");
+    // 5. Получаем ID класса из структуры DOM
+    const classHeader = activeClassPane.querySelector('h5');
+    if (!classHeader) {
+        alert("Не найден заголовок класса");
         return;
     }
     
-    // 6. Получаем необходимые ID
-    const studentId = firstStudentRow.querySelector('[data-student-id]').dataset.studentId;
-    const teacherSubjectClassId = firstStudentRow.querySelector('[data-teacher-subject-class-id]').dataset.teacherSubjectClassId;
+    // 6. Находим таблицу и первую ячейку с данными
+    const table = activeClassPane.querySelector('table');
+    const firstCellWithData = table?.querySelector('[data-teacher-subject-class-id]');
     
-    // 7. Отправляем запрос на сервер
+    if (!firstCellWithData) {
+        // Если нет ячеек с данными, пробуем получить teacher_subject_class_id из структуры
+        const classIdMatch = activeClassPane.id.match(/class-(\d+)-(\d+)/);
+        if (!classIdMatch) {
+            alert("Не удалось определить параметры класса");
+            return;
+        }
+        
+        const subjectId = classIdMatch[1];
+        const classId = classIdMatch[2];
+        
+        // Запрашиваем данные через API
+        fetch(`/get_class_data?class_id=${classId}&subject_id=${subjectId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (!data.teacher_subject_class_id) {
+                    throw new Error("Не удалось получить данные класса");
+                }
+                
+                // Используем первого ученика или создаем временную запись
+                const studentId = data.first_student_id || 0;
+                
+                return fetch('/update_grade', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        student_id: studentId,
+                        date: dateStr,
+                        teacher_subject_class_id: data.teacher_subject_class_id,
+                        new_grade: " "
+                    })
+                });
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    updateTable(year, month);
+                } else {
+                    throw new Error(data.error || 'Ошибка сервера');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Ошибка: ' + error.message);
+            });
+        return;
+    }
+    
+    // 7. Если есть данные в таблице, используем их
+    const studentId = firstCellWithData.dataset.studentId;
+    const teacherSubjectClassId = firstCellWithData.dataset.teacherSubjectClassId;
+    
     fetch('/update_grade', {
         method: 'POST',
         headers: {
@@ -230,23 +283,23 @@ function addNewDate() {
             student_id: studentId,
             date: dateStr,
             teacher_subject_class_id: teacherSubjectClassId,
-            new_grade: " " // пробел вместо оценки
+            new_grade: " "
         })
     })
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            // Обновляем таблицу
             updateTable(year, month);
         } else {
-            throw new Error(data.error || 'Неизвестная ошибка');
+            throw new Error(data.error || 'Ошибка сервера');
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        alert('Ошибка при добавлении даты: ' + error.message);
+        alert('Ошибка: ' + error.message);
     });
 }
+
 // Функция обновления таблицы
 function updateTable(year, month, keepScroll = false) {
     const scrollPosition = keepScroll ? window.scrollY : null;
@@ -273,46 +326,58 @@ function updateTable(year, month, keepScroll = false) {
             document.querySelector('.container').innerHTML = 
                 newDoc.querySelector('.container').innerHTML;
             
-            initGradeEditors();
+            // Обновляем интерфейс
+            document.getElementById('yearDropdown').textContent = `Год: ${year}`;
+            document.getElementById('monthDropdown').textContent = `Месяц: ${getMonthName(month)}`;
+            
+            setupTabListeners();
             restoreActiveTabs();
             
             if (keepScroll && scrollPosition !== null) {
                 window.scrollTo(0, scrollPosition);
             }
+        })
+        .catch(error => {
+            console.error('Error updating table:', error);
         });
 }
 
 function restoreActiveTabs() {
-    // Восстанавливаем год и месяц из localStorage
-    const savedYear = localStorage.getItem('selectedYear');
-    const savedMonth = localStorage.getItem('selectedMonth');
-    
-    if (savedYear && savedMonth) {
-        document.getElementById('yearDropdown').textContent = `Год: ${savedYear}`;
-        document.getElementById('monthDropdown').textContent = `Месяц: ${getMonthName(savedMonth)}`;
-    }
-    
-    // Восстанавливаем активные вкладки из sessionStorage
-    const activeSubjectTab = sessionStorage.getItem('activeSubjectTab');
-    if (activeSubjectTab) {
-        const tab = document.querySelector(activeSubjectTab);
-        if (tab) {
-            const tabInstance = new bootstrap.Tab(tab);
-            tabInstance.show();
-            
-            // После загрузки вкладки предмета, восстанавливаем вкладку класса
-            setTimeout(() => {
-                const activeClassTab = sessionStorage.getItem('activeClassTab');
-                if (activeClassTab) {
-                    const classTab = document.querySelector(activeClassTab);
-                    if (classTab) {
-                        const classTabInstance = new bootstrap.Tab(classTab);
-                        classTabInstance.show();
+    // Даем время для полного рендеринга контента
+    setTimeout(() => {
+        // 1. Восстанавливаем вкладку предмета
+        const activeSubjectTabId = sessionStorage.getItem('activeSubjectTab');
+        if (activeSubjectTabId) {
+            const subjectTab = document.querySelector(activeSubjectTabId);
+            if (subjectTab) {
+                // Активируем вкладку предмета
+                const tabInstance = new bootstrap.Tab(subjectTab);
+                tabInstance.show();
+                
+                // 2. После активации вкладки предмета, восстанавливаем вкладку класса
+                setTimeout(() => {
+                    const activeClassTabId = sessionStorage.getItem('activeClassTab');
+                    if (activeClassTabId) {
+                        const classTab = document.querySelector(activeClassTabId);
+                        if (classTab) {
+                            // Активируем вкладку класса
+                            const classTabInstance = new bootstrap.Tab(classTab);
+                            classTabInstance.show();
+                            
+                            // 3. После активации вкладки класса, инициализируем редакторы оценок
+                            setTimeout(() => {
+                                initGradeEditors();
+                            }, 50);
+                        }
                     }
-                }
-            }, 100);
+                }, 100);
+                return;
+            }
         }
-    }
+        
+        // Если не удалось восстановить вкладки, инициализируем редакторы для первой вкладки
+        initGradeEditors();
+    }, 150);
 }
 
 // Сохраняем активные вкладки при переключении
@@ -328,6 +393,39 @@ document.querySelectorAll('.nav-tabs button[data-bs-toggle="tab"]').forEach(tab 
         }
     });
 });
+
+function handleSubjectTabChange(event) {
+    const tabId = event.target.getAttribute('id');
+    sessionStorage.setItem('activeSubjectTab', `#${tabId}`);
+    // При смене предмета сбрасываем сохраненную вкладку класса
+    sessionStorage.removeItem('activeClassTab');
+}
+
+function handleClassTabChange(event) {
+    const tabId = event.target.getAttribute('id');
+    sessionStorage.setItem('activeClassTab', `#${tabId}`);
+}
+
+function setupTabListeners() {
+    // Удаляем старые обработчики, если они есть
+    document.querySelectorAll('#subjectTabs button[data-bs-toggle="tab"]').forEach(tab => {
+        tab.removeEventListener('shown.bs.tab', handleSubjectTabChange);
+    });
+    
+    document.querySelectorAll('[id^="classTabs-"] button[data-bs-toggle="tab"]').forEach(tab => {
+        tab.removeEventListener('shown.bs.tab', handleClassTabChange);
+    });
+    
+    // Добавляем новые обработчики
+    document.querySelectorAll('#subjectTabs button[data-bs-toggle="tab"]').forEach(tab => {
+        tab.addEventListener('shown.bs.tab', handleSubjectTabChange);
+    });
+    
+    document.querySelectorAll('[id^="classTabs-"] button[data-bs-toggle="tab"]').forEach(tab => {
+        tab.addEventListener('shown.bs.tab', handleClassTabChange);
+    });
+}
+
 
 // Восстановление состояния при загрузке
 document.addEventListener('DOMContentLoaded', function() {
@@ -346,12 +444,17 @@ document.addEventListener('DOMContentLoaded', function() {
     if (year && month) {
         document.getElementById('yearDropdown').textContent = `Год: ${year}`;
         document.getElementById('monthDropdown').textContent = `Месяц: ${getMonthName(month)}`;
-        
-        // Загружаем данные для сохраненной даты
-        updateTable(year, month, true);
     }
     
-    initGradeEditors();
+    setupTabListeners();
+    
+    // Если это первоначальная загрузка, а не AJAX-обновление
+    if (!window.location.search.includes('year=')) {
+        updateTable(year, month, true);
+    } else {
+        // Если параметры уже есть в URL, просто восстанавливаем вкладки
+        restoreActiveTabs();
+    }
 });
 
 // Обработчик для кнопки обновления

@@ -133,6 +133,49 @@ def update_teacher():
         db.session.rollback()
         return jsonify(error=str(e)), 500
 
+@app.route('/get_class_data')
+@login_required
+def get_class_data():
+    try:
+        class_id = request.args.get('class_id', type=int)
+        subject_id = request.args.get('subject_id', type=int)
+        
+        if not class_id or not subject_id:
+            return jsonify({'error': 'Не указаны ID класса или предмета'}), 400
+        
+        # Для администратора
+        if current_user.teacher_id == 12:
+            teacher_subject = Teacher_subject.query.filter_by(
+                subject_id=subject_id
+            ).first()
+        else:
+            # Для обычного учителя
+            teacher_subject = Teacher_subject.query.filter_by(
+                teacher_id=current_user.teacher_id,
+                subject_id=subject_id
+            ).first()
+        
+        if not teacher_subject:
+            return jsonify({'error': 'Преподаватель не ведет этот предмет'}), 404
+        
+        tsc = Teacher_subject_class.query.filter_by(
+            teacher_subject_id=teacher_subject.id,
+            class_id=class_id
+        ).first()
+        
+        if not tsc:
+            return jsonify({'error': 'Не найдена связь преподаватель-класс'}), 404
+        
+        # Получаем первого ученика в классе
+        student = Students.query.filter_by(class_id=class_id).first()
+        
+        return jsonify({
+            'teacher_subject_class_id': tsc.id,
+            'first_student_id': student.id if student else None
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/update_grade', methods=['POST'])
 @login_required
@@ -151,6 +194,19 @@ def update_grade():
             date_obj = datetime.strptime(date_str, '%Y-%m-%d').date()
         except ValueError as e:
             return jsonify({'success': False, 'error': f'Неверный формат даты: {str(e)}'}), 400
+        
+        # Если student_id = 0, просто создаем запись в базе без привязки к ученику
+        if data['student_id'] == 0:
+            # Находим любого ученика в этом классе
+            tsc = Teacher_subject_class.query.get(data['teacher_subject_class_id'])
+            if not tsc:
+                return jsonify({'success': False, 'error': 'Класс не найден'}), 404
+                
+            student = Students.query.filter_by(class_id=tsc.class_id).first()
+            if not student:
+                return jsonify({'success': False, 'error': 'В классе нет учеников'}), 404
+                
+            data['student_id'] = student.id
         
         # Ищем существующую оценку
         grade = Grades.query.filter_by(
@@ -178,6 +234,46 @@ def update_grade():
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/get_first_student')
+@login_required
+def get_first_student():
+    try:
+        class_id = request.args.get('class_id', type=int)
+        if not class_id:
+            return jsonify({'error': 'Не указан ID класса'}), 400
+        
+        # Находим первого ученика в классе
+        student = Students.query.filter_by(class_id=class_id).first()
+        if not student:
+            return jsonify({'error': 'В классе нет учеников'}), 404
+        
+        # Находим teacher_subject_class_id для текущего учителя и класса
+        if current_user.teacher_id == 12:  # Админ
+            tsc = Teacher_subject_class.query.filter_by(class_id=class_id).first()
+        else:
+            # Для обычного учителя
+            teacher_subject = Teacher_subject.query.filter_by(
+                teacher_id=current_user.teacher_id
+            ).first()
+            if not teacher_subject:
+                return jsonify({'error': 'Учитель не ведет предметы'}), 404
+            
+            tsc = Teacher_subject_class.query.filter_by(
+                teacher_subject_id=teacher_subject.id,
+                class_id=class_id
+            ).first()
+        
+        if not tsc:
+            return jsonify({'error': 'Не найдена связь учитель-предмет-класс'}), 404
+        
+        return jsonify({
+            'student_id': student.id,
+            'teacher_subject_class_id': tsc.id
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 #что это?
 @app.route("/index")
