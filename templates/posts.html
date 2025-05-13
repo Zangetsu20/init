@@ -185,6 +185,12 @@
 
 <script>
 function addNewDate() {
+    // Сохраняем текущие активные вкладки перед выполнением
+    const currentSubjectTab = document.querySelector('#subjectTabs .nav-link.active');
+    const currentClassTab = document.querySelector('.tab-pane.active .nav-link.active');
+    const currentSubjectTabId = currentSubjectTab ? `#${currentSubjectTab.id}` : null;
+    const currentClassTabId = currentClassTab ? `#${currentClassTab.id}` : null;
+
     // 1. Получаем текущие год и месяц
     const urlParams = new URLSearchParams(window.location.search);
     const year = urlParams.get('year') || new Date().getFullYear();
@@ -258,7 +264,17 @@ function addNewDate() {
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    updateTable(year, month);
+                    // Восстанавливаем сохраненные вкладки после обновления
+                    updateTable(year, month, true).then(() => {
+                        if (currentSubjectTabId) {
+                            const tab = document.querySelector(currentSubjectTabId);
+                            if (tab) new bootstrap.Tab(tab).show();
+                        }
+                        if (currentClassTabId) {
+                            const tab = document.querySelector(currentClassTabId);
+                            if (tab) new bootstrap.Tab(tab).show();
+                        }
+                    });
                 } else {
                     throw new Error(data.error || 'Ошибка сервера');
                 }
@@ -289,7 +305,17 @@ function addNewDate() {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            updateTable(year, month);
+            // Восстанавливаем сохраненные вкладки после обновления
+            updateTable(year, month, true).then(() => {
+                if (currentSubjectTabId) {
+                    const tab = document.querySelector(currentSubjectTabId);
+                    if (tab) new bootstrap.Tab(tab).show();
+                }
+                if (currentClassTabId) {
+                    const tab = document.querySelector(currentClassTabId);
+                    if (tab) new bootstrap.Tab(tab).show();
+                }
+            });
         } else {
             throw new Error(data.error || 'Ошибка сервера');
         }
@@ -300,84 +326,159 @@ function addNewDate() {
     });
 }
 
-// Функция обновления таблицы
+// Добавим флаг для отслеживания первого обновления
+let isFirstUpdate = true;
+
+let isInitialLoad = true;
+let preventTabSave = false;
+
 function updateTable(year, month, keepScroll = false) {
-    const scrollPosition = keepScroll ? window.scrollY : null;
-    
-    // Сохраняем в cookies (для серверной части)
-    document.cookie = `selectedYear=${year}; path=/`;
-    document.cookie = `selectedMonth=${month}; path=/`;
-    
-    // Сохраняем в localStorage (для клиентской части)
-    localStorage.setItem('selectedYear', year);
-    localStorage.setItem('selectedMonth', month);
-    
-    // Обновляем URL без перезагрузки страницы
-    const newUrl = new URL(window.location.href);
-    newUrl.searchParams.set('year', year);
-    newUrl.searchParams.set('month', month);
-    window.history.pushState({}, '', newUrl);
-    
-    fetch(`${window.location.pathname}?year=${year}&month=${month}`)
-        .then(response => response.text())
-        .then(html => {
-            const parser = new DOMParser();
-            const newDoc = parser.parseFromString(html, 'text/html');
-            document.querySelector('.container').innerHTML = 
-                newDoc.querySelector('.container').innerHTML;
-            
-            // Обновляем интерфейс
-            document.getElementById('yearDropdown').textContent = `Год: ${year}`;
-            document.getElementById('monthDropdown').textContent = `Месяц: ${getMonthName(month)}`;
-            
-            setupTabListeners();
-            restoreActiveTabs();
-            
-            if (keepScroll && scrollPosition !== null) {
-                window.scrollTo(0, scrollPosition);
-            }
-        })
-        .catch(error => {
-            console.error('Error updating table:', error);
-        });
+    return new Promise((resolve) => {
+        const scrollPosition = keepScroll ? window.scrollY : null;
+        preventTabSave = true;
+        
+        document.cookie = `selectedYear=${year}; path=/`;
+        document.cookie = `selectedMonth=${month}; path=/`;
+        localStorage.setItem('selectedYear', year);
+        localStorage.setItem('selectedMonth', month);
+        
+        const newUrl = new URL(window.location.href);
+        newUrl.searchParams.set('year', year);
+        newUrl.searchParams.set('month', month);
+        window.history.pushState({}, '', newUrl);
+        
+        fetch(`${window.location.pathname}?year=${year}&month=${month}`)
+            .then(response => response.text())
+            .then(html => {
+                const parser = new DOMParser();
+                const newDoc = parser.parseFromString(html, 'text/html');
+                document.querySelector('.container').innerHTML = 
+                    newDoc.querySelector('.container').innerHTML;
+                
+                initGradeEditors();
+                setupTabListeners();
+                
+                setTimeout(() => {
+                    restoreActiveTabs();
+                    preventTabSave = false;
+                    
+                    if (keepScroll && scrollPosition !== null) {
+                        window.scrollTo(0, scrollPosition);
+                    }
+                    resolve(); // Разрешаем Promise после полной загрузки
+                }, 200);
+            });
+    });
 }
 
+// Модифицируем restoreActiveTabs для работы с первым обновлением
 function restoreActiveTabs() {
-    // Даем время для полного рендеринга контента
     setTimeout(() => {
         // 1. Восстанавливаем вкладку предмета
         const activeSubjectTabId = sessionStorage.getItem('activeSubjectTab');
         if (activeSubjectTabId) {
             const subjectTab = document.querySelector(activeSubjectTabId);
             if (subjectTab) {
-                // Активируем вкладку предмета
-                const tabInstance = new bootstrap.Tab(subjectTab);
-                tabInstance.show();
+                new bootstrap.Tab(subjectTab).show();
                 
-                // 2. После активации вкладки предмета, восстанавливаем вкладку класса
+                // 2. После активации предмета восстанавливаем вкладку класса
                 setTimeout(() => {
                     const activeClassTabId = sessionStorage.getItem('activeClassTab');
                     if (activeClassTabId) {
                         const classTab = document.querySelector(activeClassTabId);
                         if (classTab) {
-                            // Активируем вкладку класса
-                            const classTabInstance = new bootstrap.Tab(classTab);
-                            classTabInstance.show();
-                            
-                            // 3. После активации вкладки класса, инициализируем редакторы оценок
-                            setTimeout(() => {
-                                initGradeEditors();
-                            }, 50);
+                            new bootstrap.Tab(classTab).show();
                         }
                     }
                 }, 100);
-                return;
             }
         }
-        
-        // Если не удалось восстановить вкладки, инициализируем редакторы для первой вкладки
-        initGradeEditors();
     }, 150);
+}
+
+// Добавим сброс флага при загрузке страницы
+document.addEventListener('DOMContentLoaded', function() {
+    isFirstUpdate = true;
+    
+    const urlParams = new URLSearchParams(window.location.search);
+    let year = urlParams.get('year');
+    let month = urlParams.get('month');
+    
+    if (!year || !month) {
+        year = localStorage.getItem('selectedYear') || new Date().getFullYear();
+        month = localStorage.getItem('selectedMonth') || new Date().getMonth() + 1;
+    }
+    
+    document.getElementById('yearDropdown').textContent = `Год: ${year}`;
+    document.getElementById('monthDropdown').textContent = `Месяц: ${getMonthName(month)}`;
+    
+    setupTabListeners();
+    
+    if (!window.location.search.includes('year=')) {
+        updateTable(year, month, true);
+    } else {
+        restoreActiveTabs();
+    }
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+    isInitialLoad = true;
+    preventTabSave = false;
+    
+    const urlParams = new URLSearchParams(window.location.search);
+    let year = urlParams.get('year');
+    let month = urlParams.get('month');
+    
+    if (!year || !month) {
+        year = localStorage.getItem('selectedYear') || new Date().getFullYear();
+        month = localStorage.getItem('selectedMonth') || new Date().getMonth() + 1;
+    }
+    
+    document.getElementById('yearDropdown').textContent = `Год: ${year}`;
+    document.getElementById('monthDropdown').textContent = `Месяц: ${getMonthName(month)}`;
+    
+    setupTabListeners();
+    
+    if (!window.location.search.includes('year=')) {
+        updateTable(year, month, true);
+    } else {
+        restoreActiveTabs();
+    }
+});
+
+function restoreActiveTabs() {
+    if (isInitialLoad) {
+        // При первой загрузке используем сохраненные значения
+        const subjectTabId = sessionStorage.getItem('activeSubjectTab');
+        const classTabId = sessionStorage.getItem('activeClassTab');
+        
+        if (subjectTabId) {
+            const subjectTab = document.querySelector(subjectTabId);
+            if (subjectTab) {
+                new bootstrap.Tab(subjectTab).show();
+                
+                if (classTabId) {
+                    setTimeout(() => {
+                        const classTab = document.querySelector(classTabId);
+                        if (classTab) new bootstrap.Tab(classTab).show();
+                    }, 150);
+                }
+            }
+        }
+        isInitialLoad = false;
+    } else {
+        // При обновлении сохраняем текущие вкладки
+        const currentSubjectTab = document.querySelector('#subjectTabs .nav-link.active');
+        const currentClassTab = document.querySelector('.tab-pane.active .nav-link.active');
+        
+        if (currentSubjectTab) {
+            sessionStorage.setItem('activeSubjectTab', `#${currentSubjectTab.id}`);
+            
+            if (currentClassTab) {
+                sessionStorage.setItem('activeClassTab', `#${currentClassTab.id}`);
+            }
+        }
+    }
 }
 
 // Сохраняем активные вкладки при переключении
@@ -394,6 +495,21 @@ document.querySelectorAll('.nav-tabs button[data-bs-toggle="tab"]').forEach(tab 
     });
 });
 
+function handleTabChange(event) {
+    if (preventTabSave) return;
+    
+    const tab = event.target;
+    const tabId = tab.id;
+    
+    if (tab.closest('#subjectTabs')) {
+        sessionStorage.setItem('activeSubjectTab', `#${tabId}`);
+        // При смене предмета сбрасываем вкладку класса
+        sessionStorage.removeItem('activeClassTab');
+    } else if (tab.closest('[id^="classTabs-"]')) {
+        sessionStorage.setItem('activeClassTab', `#${tabId}`);
+    }
+}
+
 function handleSubjectTabChange(event) {
     const tabId = event.target.getAttribute('id');
     sessionStorage.setItem('activeSubjectTab', `#${tabId}`);
@@ -407,22 +523,14 @@ function handleClassTabChange(event) {
 }
 
 function setupTabListeners() {
-    // Удаляем старые обработчики, если они есть
-    document.querySelectorAll('#subjectTabs button[data-bs-toggle="tab"]').forEach(tab => {
-        tab.removeEventListener('shown.bs.tab', handleSubjectTabChange);
-    });
-    
-    document.querySelectorAll('[id^="classTabs-"] button[data-bs-toggle="tab"]').forEach(tab => {
-        tab.removeEventListener('shown.bs.tab', handleClassTabChange);
+    // Удаляем старые обработчики
+    document.querySelectorAll('[data-bs-toggle="tab"]').forEach(tab => {
+        tab.removeEventListener('shown.bs.tab', handleTabChange);
     });
     
     // Добавляем новые обработчики
-    document.querySelectorAll('#subjectTabs button[data-bs-toggle="tab"]').forEach(tab => {
-        tab.addEventListener('shown.bs.tab', handleSubjectTabChange);
-    });
-    
-    document.querySelectorAll('[id^="classTabs-"] button[data-bs-toggle="tab"]').forEach(tab => {
-        tab.addEventListener('shown.bs.tab', handleClassTabChange);
+    document.querySelectorAll('[data-bs-toggle="tab"]').forEach(tab => {
+        tab.addEventListener('shown.bs.tab', handleTabChange);
     });
 }
 

@@ -9,6 +9,7 @@ from openpyxl import Workbook
 from io import BytesIO
 from flask import send_file
 from datetime import datetime
+from flask import session
 import zipfile
 import tempfile
 import os
@@ -286,6 +287,11 @@ def index():
 @app.route("/posts")
 @login_required
 def posts():
+    # Очищаем session storage при первом заходе
+    if not request.args.get('year') and not request.args.get('month'):
+        session.pop('activeSubjectTab', None)
+        session.pop('activeClassTab', None)
+    
     # Получаем параметры фильтрации
     selected_year = request.args.get('year', type=int)
     selected_month = request.args.get('month', type=int)
