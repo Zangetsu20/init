@@ -185,41 +185,42 @@
 
 <script>
 function addNewDate() {
-    // Получаем текущий год и месяц из URL или из данных на странице
+    // 1. Получаем текущие год и месяц
     const urlParams = new URLSearchParams(window.location.search);
     const year = urlParams.get('year') || new Date().getFullYear();
     const month = urlParams.get('month') || new Date().getMonth() + 1;
     
-    // Запрашиваем у пользователя день
+    // 2. Запрашиваем у пользователя день
     const day = prompt("Введите день месяца (1-31):");
-    
     if (!day || isNaN(day) || day < 1 || day > 31) {
         alert("Некорректный день. Введите число от 1 до 31");
         return;
     }
     
-    // Форматируем дату в формате YYYY-MM-DD
+    // 3. Форматируем дату
     const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     
-    // Находим активную вкладку класса (текущий открытый класс)
-    const activeClassTab = document.querySelector('.tab-pane.active');
-    if (!activeClassTab) {
-        alert("Не найден активный класс");
+    // 4. Находим активные вкладки
+    const activeSubjectPane = document.querySelector('#subjectTabsContent .tab-pane.active');
+    const activeClassPane = activeSubjectPane.querySelector('.tab-pane.active');
+    
+    if (!activeSubjectPane || !activeClassPane) {
+        alert("Не удалось определить активный класс");
         return;
     }
     
-    // Получаем первый ряд с учеником
-    const firstStudentRow = activeClassTab.querySelector('tbody tr');
+    // 5. Получаем данные из активного класса
+    const firstStudentRow = activeClassPane.querySelector('tbody tr');
     if (!firstStudentRow) {
         alert("В этом классе нет учеников");
         return;
     }
     
-    // Получаем необходимые данные из первого ученика
+    // 6. Получаем необходимые ID
     const studentId = firstStudentRow.querySelector('[data-student-id]').dataset.studentId;
     const teacherSubjectClassId = firstStudentRow.querySelector('[data-teacher-subject-class-id]').dataset.teacherSubjectClassId;
     
-    // Отправляем запрос на сервер
+    // 7. Отправляем запрос на сервер
     fetch('/update_grade', {
         method: 'POST',
         headers: {
@@ -235,7 +236,7 @@ function addNewDate() {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            // Обновляем таблицу без перезагрузки страницы
+            // Обновляем таблицу
             updateTable(year, month);
         } else {
             throw new Error(data.error || 'Неизвестная ошибка');
@@ -313,6 +314,20 @@ function restoreActiveTabs() {
         }
     }
 }
+
+// Сохраняем активные вкладки при переключении
+document.querySelectorAll('.nav-tabs button[data-bs-toggle="tab"]').forEach(tab => {
+    tab.addEventListener('shown.bs.tab', function (event) {
+        const tabId = event.target.getAttribute('id');
+        if (event.target.closest('.nav-tabs')) {
+            // Это основная вкладка (предмет)
+            sessionStorage.setItem('activeSubjectTab', `#${tabId}`);
+        } else {
+            // Это вложенная вкладка (класс)
+            sessionStorage.setItem('activeClassTab', `#${tabId}`);
+        }
+    });
+});
 
 // Восстановление состояния при загрузке
 document.addEventListener('DOMContentLoaded', function() {
