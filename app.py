@@ -191,9 +191,22 @@ def index():
 @login_required
 def posts():
     # Получаем параметры фильтрации
-    selected_year = request.args.get('year', type=int, default=datetime.now().year)
-    selected_month = request.args.get('month', type=int, default=datetime.now().month)
+    selected_year = request.args.get('year', type=int)
+    selected_month = request.args.get('month', type=int)
     
+        # Если параметров нет, проверяем localStorage через cookies
+    if selected_year is None or selected_month is None:
+        stored_year = request.cookies.get('selectedYear')
+        stored_month = request.cookies.get('selectedMonth')
+        if stored_year and stored_month:
+            selected_year = int(stored_year)
+            selected_month = int(stored_month)
+    # Если все еще нет - используем текущую дату
+    if selected_year is None:
+        selected_year = datetime.now().year
+    if selected_month is None:
+        selected_month = datetime.now().month
+        
     # Проверяем, является ли пользователь администратором
     is_admin = current_user.teacher_id == 12
     

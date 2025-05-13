@@ -247,9 +247,22 @@ function addNewDate() {
     });
 }
 // Функция обновления таблицы
-function updateTable(year, month) {
-    const loader = document.getElementById('loadingIndicator');
-    loader.style.display = 'block';
+function updateTable(year, month, keepScroll = false) {
+    const scrollPosition = keepScroll ? window.scrollY : null;
+    
+    // Сохраняем в cookies (для серверной части)
+    document.cookie = `selectedYear=${year}; path=/`;
+    document.cookie = `selectedMonth=${month}; path=/`;
+    
+    // Сохраняем в localStorage (для клиентской части)
+    localStorage.setItem('selectedYear', year);
+    localStorage.setItem('selectedMonth', month);
+    
+    // Обновляем URL без перезагрузки страницы
+    const newUrl = new URL(window.location.href);
+    newUrl.searchParams.set('year', year);
+    newUrl.searchParams.set('month', month);
+    window.history.pushState({}, '', newUrl);
     
     fetch(`${window.location.pathname}?year=${year}&month=${month}`)
         .then(response => response.text())
@@ -258,13 +271,88 @@ function updateTable(year, month) {
             const newDoc = parser.parseFromString(html, 'text/html');
             document.querySelector('.container').innerHTML = 
                 newDoc.querySelector('.container').innerHTML;
+            
             initGradeEditors();
-        })
-        .finally(() => {
-            loader.style.display = 'none';
+            restoreActiveTabs();
+            
+            if (keepScroll && scrollPosition !== null) {
+                window.scrollTo(0, scrollPosition);
+            }
         });
 }
 
+function restoreActiveTabs() {
+    // Восстанавливаем год и месяц из localStorage
+    const savedYear = localStorage.getItem('selectedYear');
+    const savedMonth = localStorage.getItem('selectedMonth');
+    
+    if (savedYear && savedMonth) {
+        document.getElementById('yearDropdown').textContent = `Год: ${savedYear}`;
+        document.getElementById('monthDropdown').textContent = `Месяц: ${getMonthName(savedMonth)}`;
+    }
+    
+    // Восстанавливаем активные вкладки из sessionStorage
+    const activeSubjectTab = sessionStorage.getItem('activeSubjectTab');
+    if (activeSubjectTab) {
+        const tab = document.querySelector(activeSubjectTab);
+        if (tab) {
+            const tabInstance = new bootstrap.Tab(tab);
+            tabInstance.show();
+            
+            // После загрузки вкладки предмета, восстанавливаем вкладку класса
+            setTimeout(() => {
+                const activeClassTab = sessionStorage.getItem('activeClassTab');
+                if (activeClassTab) {
+                    const classTab = document.querySelector(activeClassTab);
+                    if (classTab) {
+                        const classTabInstance = new bootstrap.Tab(classTab);
+                        classTabInstance.show();
+                    }
+                }
+            }, 100);
+        }
+    }
+}
+
+// Восстановление состояния при загрузке
+document.addEventListener('DOMContentLoaded', function() {
+    // Проверяем параметры URL в первую очередь
+    const urlParams = new URLSearchParams(window.location.search);
+    let year = urlParams.get('year');
+    let month = urlParams.get('month');
+    
+    // Если нет в URL, проверяем localStorage
+    if (!year || !month) {
+        year = localStorage.getItem('selectedYear') || new Date().getFullYear();
+        month = localStorage.getItem('selectedMonth') || new Date().getMonth() + 1;
+    }
+    
+    // Обновляем интерфейс
+    if (year && month) {
+        document.getElementById('yearDropdown').textContent = `Год: ${year}`;
+        document.getElementById('monthDropdown').textContent = `Месяц: ${getMonthName(month)}`;
+        
+        // Загружаем данные для сохраненной даты
+        updateTable(year, month, true);
+    }
+    
+    initGradeEditors();
+});
+
+// Обработчик для кнопки обновления
+document.getElementById('refreshButton').addEventListener('click', function() {
+    const year = localStorage.getItem('selectedYear') || new Date().getFullYear();
+    const month = localStorage.getItem('selectedMonth') || new Date().getMonth() + 1;
+    updateTable(year, month, true);
+});
+
+function getMonthName(monthNum) {
+    const months = [
+        'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
+        'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'
+    ];
+    return months[monthNum - 1] || monthNum;
+}
 // Инициализация при загрузке
 document.addEventListener('DOMContentLoaded', function() {
     initGradeEditors();
