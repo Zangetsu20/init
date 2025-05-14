@@ -52,6 +52,28 @@
     </div>
 </div>
 
+<!-- окно для добавления предмета -->
+<div class="modal fade" id="addRecordSubjectModal" tabindex="-1" aria-labelledby="addRecordSubjectModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addRecordSubjectModalLabel">Добавить Предмет</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+            </div>
+            <div class="modal-body">
+                <form method="post" class="needs-validation" novalidate>
+                    <div class="mb-3">
+                        <label for="firstname" class="form-label">Предмет</label>
+                        <input type="text" name="firstname" class="form-control" id="firstname" required>
+                        <div class="invalid-feedback">Введите Предмет</div>
+                    </div>
+                    <button class="btn btn-success" type="submit">Сохранить</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1>Все записи</h1>
@@ -108,6 +130,12 @@
     </div>
     {% else %}
     <!-- Основные вкладки (предметы) -->
+                    <div class="mt-2">
+                        <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal"
+                                data-bs-target="#addRecordSubjectModal">
+                            Добавить Предмет
+                        </button>
+                    </div>
     <ul class="nav nav-tabs" id="subjectTabs" role="tablist">
         {% for subject in subjects_data %}
         <li class="nav-item" role="presentation">

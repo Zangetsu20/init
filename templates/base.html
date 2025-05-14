@@ -60,13 +60,6 @@ function getCurrentSubjectId() {
 }
 </script>
 
-    <!-- Кнопка "Добавить запись" — отображается только если пользователь авторизован -->
-    {% if current_user.is_authenticated %}
-        <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal"
-                data-bs-target="#addRecordModal">
-            Добавить запись
-        </button>
-    {% endif %}
 
     <!-- Авторизация -->
     {% if current_user.is_authenticated %}
@@ -104,32 +97,7 @@ function getCurrentSubjectId() {
     </footer>
 </div>
 
-<!-- Модальное окно -->
-<div class="modal fade" id="addRecordModal" tabindex="-1" aria-labelledby="addRecordModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="addRecordModalLabel">Добавить запись</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
-            </div>
-            <div class="modal-body">
-                <form method="post" class="needs-validation" novalidate>
-                    <div class="mb-3">
-                        <label for="firstname" class="form-label">Фамилия</label>
-                        <input type="text" name="firstname" class="form-control" id="firstname" required>
-                        <div class="invalid-feedback">Введите фамилию</div>
-                    </div>
-                    <div class="mb-3">
-                        <label for="lastname" class="form-label">Имя</label>
-                        <input type="text" name="lastname" class="form-control" id="lastname" required>
-                        <div class="invalid-feedback">Введите имя</div>
-                    </div>
-                    <button class="btn btn-success" type="submit">Сохранить</button>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
+
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
         integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
