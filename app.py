@@ -541,13 +541,18 @@ def create():
                 
                 # Считаем пропуски ("н")
                 absent_count = sum(1 for g in student_grades if g.grade == 'н')
+                # Рассчитываем процент посещаемости
+                attendance_percent = 0
+                if max_day > 0:
+                    attendance_percent = round(((max_day - absent_count) / max_day) * 100)
                 
                 students_data.append({
                     'last_name': student.last_name,
                     'first_name': student.first_name,
                     'student_id': student.id,
                     'absent_count': absent_count,
-                    'has_records': len(student_grades) > 0  # Есть ли хоть одна запись
+                    'has_records': len(student_grades) > 0,
+                    'attendance_percent': attendance_percent  # Добавляем расчетный процент
                 })
             
             classes_data.append({
