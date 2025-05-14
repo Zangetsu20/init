@@ -97,19 +97,33 @@
                                 <tr>
                                     <th style="width: 50px">№</th>
                                     <th style="width: 250px">Фамилия Имя</th>
-                                    <th>Дней</th>
+                                    <th>Посещено</th>
+                                    <th>Всего</th>
                                     <th>Примечание</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for student in class_info.students %}
-                                <tr>
-                                    <td>{{ loop.index }}</td>
-                                    <td>{{ student.last_name }} {{ student.first_name }}</td>
-                                    <td>{{ student.grades|length }}</td>
-                                    <td></td>
-                                </tr>
-                                {% endfor %}
+                                {% if class_info.students %}
+                                    {% for student in class_info.students %}
+                                    <tr>
+                                        <td>{{ loop.index }}</td>
+                                        <td>{{ student.last_name }} {{ student.first_name }}</td>
+                                        <td>
+                                            {% if student.has_records %}
+                                                {{ class_info.max_day - student.absent_count }}
+                                            {% else %}
+                                                0-0
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ class_info.max_day if student.has_records else 0 }}</td>
+                                        <td></td>
+                                    </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="5" class="text-center">Нет студентов в классе</td>
+                                    </tr>
+                                {% endif %}
                             </tbody>
                         </table>
                     </div>

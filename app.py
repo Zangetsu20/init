@@ -509,45 +509,53 @@ def create():
                     teacher = Teachers.query.get(ts.teacher_id)
                     if teacher:
                         teacher_name = f"{teacher.last_name} {teacher.first_name}"
-            
-            # Получаем студентов
+
+            # Получаем всех студентов класса
             students = Students.query.filter_by(class_id=class_info.id)\
                 .order_by(Students.last_name, Students.first_name).all()
             
-            students_grades = []
-            all_dates = set()
+            if not students:
+                classes_data.append({
+                    'class_id': class_info.id,
+                    'class_name': class_info.class_name,
+                    'teacher_name': teacher_name,
+                    'students': [],
+                    'max_day': 0
+                })
+                continue
             
+            # Получаем все оценки для этого класса и предмета за выбранный период
+            all_grades = Grades.query.filter(
+                Grades.teacher_subject_class_id == cl.id,
+                db.extract('year', Grades.date) == selected_year,
+                db.extract('month', Grades.date) == selected_month
+            ).all()
+            
+            # Находим максимальный день в классе (по всем студентам)
+            max_day = max([grade.date.day for grade in all_grades]) if all_grades else 0
+            
+            students_data = []
             for student in students:
-                # Фильтруем оценки по выбранному году и месяцу
-                grades = Grades.query.filter(
-                    Grades.student_id == student.id,
-                    Grades.teacher_subject_class_id == cl.id,
-                    db.extract('year', Grades.date) == selected_year,
-                    db.extract('month', Grades.date) == selected_month
-                ).order_by(Grades.date).all()
+                # Фильтруем оценки только для текущего студента
+                student_grades = [g for g in all_grades if g.student_id == student.id]
                 
-                grades_dict = {}
-                for grade in grades:
-                    day_str = grade.date.strftime('%d')  # Только день
-                    grades_dict[day_str] = grade.grade
-                    all_dates.add(day_str)
+                # Считаем пропуски ("н")
+                absent_count = sum(1 for g in student_grades if g.grade == 'н')
                 
-                students_grades.append({
+                students_data.append({
                     'last_name': student.last_name,
                     'first_name': student.first_name,
                     'student_id': student.id,
-                    'teacher_subject_class_id': cl.id,
-                    'grades': grades_dict
+                    'absent_count': absent_count,
+                    'has_records': len(student_grades) > 0  # Есть ли хоть одна запись
                 })
-            
-            sorted_dates = sorted(all_dates)
             
             classes_data.append({
                 'class_id': class_info.id,
                 'class_name': class_info.class_name,
                 'teacher_name': teacher_name,
-                'students': students_grades,
-                'dates': sorted_dates
+                'students': students_data,
+                'max_day': max_day
             })
         
         if classes_data:
