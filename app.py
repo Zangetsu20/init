@@ -98,11 +98,6 @@ with app.app_context():
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-# запрос данных с таблицы
-@app.route("/create")
-def show_teachers():
-    teachers = Teachers.query.all()
-    return render_template('create.html', teachers=teachers)
 
 #тест выода\редактирования
 #@csrf.exempt #разкоментировать для отключения csrf 
@@ -434,26 +429,141 @@ def get_available_years():
     max_year = db.session.query(db.extract('year', db.func.max(Grades.date))).scalar()
     return list(range(min_year, max_year + 1)) if min_year and max_year else [datetime.now().year]
 
-@app.route("/create", methods=['POST', 'GET'])
+@app.route("/create")
 @login_required
 def create():
-    if request.method == 'POST':
-        firstname = request.form['firstname']
-        lastname = request.form['lastname']
-        d = request.form['d']
+    # Очищаем session storage при первом заходе
+    if not request.args.get('year') and not request.args.get('month'):
+        session.pop('activeSubjectTab', None)
+        session.pop('activeClassTab', None)
+    
+    # Получаем параметры фильтрации
+    selected_year = request.args.get('year', type=int)
+    selected_month = request.args.get('month', type=int)
+    
+    # Если параметров нет, проверяем localStorage через cookies
+    if selected_year is None or selected_month is None:
+        stored_year = request.cookies.get('selectedYear')
+        stored_month = request.cookies.get('selectedMonth')
+        if stored_year and stored_month:
+            selected_year = int(stored_year)
+            selected_month = int(stored_month)
+    # Если все еще нет - используем текущую дату
+    if selected_year is None:
+        selected_year = datetime.now().year
+    if selected_month is None:
+        selected_month = datetime.now().month
         
-        #post = Graf(firstname=firstname, lastname=lastname, d=d) # добавляет в graf новую строку
+    # Проверяем, является ли пользователь администратором
+    is_admin = current_user.teacher_id == 12
+    
+    if is_admin:
+        subjects = Subjects.query.order_by(Subjects.subject_name).all()
+    else:
+        if not current_user.teacher_id:
+            flash('У вас нет привязанного профиля учителя', 'error')
+            return redirect(url_for('index'))
         
-        try:
-            #db.session.add(post)
-            db.session.commit()
-            flash('Данные успешно добавлены!', 'success')
-            return redirect('/')
-        except:
-            flash('При добавлении данных произошла ошибка!', 'error')
-            return render_template('create.html')
+        teacher_id = current_user.teacher_id
+        teacher_subjects = Teacher_subject.query.filter_by(teacher_id=teacher_id).all()
+        subject_ids = [ts.subject_id for ts in teacher_subjects]
+        subjects = Subjects.query.filter(Subjects.id.in_(subject_ids)).order_by(Subjects.subject_name).all()
+    
+    # Получаем доступные годы из базы
+    min_year = db.session.query(db.extract('year', db.func.min(Grades.date))).scalar() or datetime.now().year
+    max_year = db.session.query(db.extract('year', db.func.max(Grades.date))).scalar() or datetime.now().year
+    available_years = list(range(min_year, max_year + 1))
+    
+    subjects_data = []
+    
+    for subject in subjects:
+        if is_admin:
+            teacher_subjects = Teacher_subject.query.filter_by(subject_id=subject.id).all()
+            teacher_subject_ids = [ts.id for ts in teacher_subjects]
+            class_links = Teacher_subject_class.query.filter(
+                Teacher_subject_class.teacher_subject_id.in_(teacher_subject_ids)
+            ).all()
+        else:
+            teacher_subject = Teacher_subject.query.filter_by(
+                teacher_id=current_user.teacher_id,
+                subject_id=subject.id
+            ).first()
+            if not teacher_subject:
+                continue
             
-    return render_template('create.html')
+            class_links = Teacher_subject_class.query.filter_by(
+                teacher_subject_id=teacher_subject.id
+            ).all()
+        
+        classes_data = []
+        for cl in class_links:
+            class_info = Classes.query.get(cl.class_id)
+            if not class_info:
+                continue
+            
+            # Получаем имя преподавателя (для админа)
+            teacher_name = ""
+            if is_admin:
+                ts = Teacher_subject.query.get(cl.teacher_subject_id)
+                if ts:
+                    teacher = Teachers.query.get(ts.teacher_id)
+                    if teacher:
+                        teacher_name = f"{teacher.last_name} {teacher.first_name}"
+            
+            # Получаем студентов
+            students = Students.query.filter_by(class_id=class_info.id)\
+                .order_by(Students.last_name, Students.first_name).all()
+            
+            students_grades = []
+            all_dates = set()
+            
+            for student in students:
+                # Фильтруем оценки по выбранному году и месяцу
+                grades = Grades.query.filter(
+                    Grades.student_id == student.id,
+                    Grades.teacher_subject_class_id == cl.id,
+                    db.extract('year', Grades.date) == selected_year,
+                    db.extract('month', Grades.date) == selected_month
+                ).order_by(Grades.date).all()
+                
+                grades_dict = {}
+                for grade in grades:
+                    day_str = grade.date.strftime('%d')  # Только день
+                    grades_dict[day_str] = grade.grade
+                    all_dates.add(day_str)
+                
+                students_grades.append({
+                    'last_name': student.last_name,
+                    'first_name': student.first_name,
+                    'student_id': student.id,
+                    'teacher_subject_class_id': cl.id,
+                    'grades': grades_dict
+                })
+            
+            sorted_dates = sorted(all_dates)
+            
+            classes_data.append({
+                'class_id': class_info.id,
+                'class_name': class_info.class_name,
+                'teacher_name': teacher_name,
+                'students': students_grades,
+                'dates': sorted_dates
+            })
+        
+        if classes_data:
+            subjects_data.append({
+                'subject_id': subject.id,
+                'subject_name': subject.subject_name,
+                'classes': classes_data
+            })
+    
+    return render_template('create.html', 
+                         subjects_data=subjects_data,
+                         is_admin=is_admin,
+                         available_years=available_years,
+                         available_months=list(range(1, 13)),
+                         selected_year=selected_year,
+                         selected_month=selected_month)
 
 @app.route("/about")
 def about():
