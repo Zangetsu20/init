@@ -32,8 +32,7 @@
 </div>
 
 <!-- окно для добавления класса -->
-<div class="modal fade" id="addRecordClassModal" tabindex="-1"
-     aria-labelledby="addRecordClassModalLabel" aria-hidden="true">
+<div class="modal fade" id="addRecordClassModal" tabindex="-1" aria-labelledby="addRecordClassModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
@@ -42,7 +41,7 @@
             </div>
             <div class="modal-body">
                 <form id="addClassForm" method="post" action="/add_class" class="needs-validation" novalidate>
-                    <input type="hidden" name="teacher_id" id="teacherIdInput">
+                    <input type="hidden" name="teacher_id" id="classTeacherIdInput">
                     <input type="hidden" name="subject_id" id="subjectIdInput">
 
                     <div class="mb-3">
@@ -67,10 +66,11 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
             </div>
             <div class="modal-body">
-                <form method="post" class="needs-validation" novalidate>
+                <form method="post" action="/add_subject" class="needs-validation" novalidate>
+                    <input type="hidden" name="teacher_id" id="subjectTeacherIdInput">
                     <div class="mb-3">
-                        <label for="firstname" class="form-label">Предмет</label>
-                        <input type="text" name="firstname" class="form-control" id="firstname" required>
+                        <label for="subjectsname" class="form-label">Предмет</label>
+                        <input type="text" name="subjectsname" class="form-control" id="subjectsname" required>
                         <div class="invalid-feedback">Введите Предмет</div>
                     </div>
                     <button class="btn btn-success" type="submit">Сохранить</button>
@@ -218,6 +218,10 @@
                     {% if not class_info.students %}
                     <div class="alert alert-warning">
                         В этом классе нет студентов
+                            <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal"
+                                data-bs-target="#addRecordModal">
+                                Добавить ученика
+                            </button>
                     </div>
                     {% else %}
                 <div class="container">
@@ -335,6 +339,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 });
 
+    //запрос fetch для id учителя
 function fetchTeacherId(subjectId) {
     fetch(`/get_teacher_id?subject_id=${subjectId}`)
         .then(response => response.json())
@@ -343,9 +348,13 @@ function fetchTeacherId(subjectId) {
                 console.log('Данные успешно получены:', data);
 
                 // Записываем teacher_id в форму
-                const teacherInput = document.getElementById('teacherIdInput');
-                if (teacherInput) {
-                    teacherInput.value = data.teacher_id;
+                const classteacherInput = document.getElementById('classTeacherIdInput');
+                if (classteacherInput) {
+                    classteacherInput.value = data.teacher_id;
+                }
+                const subjectteacherInput = document.getElementById('subjectTeacherIdInput');
+                if (subjectteacherInput) {
+                    subjectteacherInput.value = data.teacher_id;
                 }
 
                 // Если нужно — можно записать subject_id тоже
@@ -355,11 +364,11 @@ function fetchTeacherId(subjectId) {
                 }
 
                 // Открываем модальное окно (если оно не открыто)
-                const modalElement = document.getElementById('addRecordClassModal');
-                const modalInstance = bootstrap.Modal.getInstance(modalElement);
-                if (!modalInstance._isShown) {
-                    modalInstance.show();
-                }
+                //const modalElement = document.getElementById('addRecordClassModal');
+                //const modalInstance = bootstrap.Modal.getInstance(modalElement);
+                // if (!modalInstance._isShown) {
+                //    modalInstance.show();
+                //}
             } else {
                 alert('Ошибка: ' + (data.error || 'Не удалось получить данные'));
                 console.error('Ошибка получения teacher_id:', data.error);
@@ -370,8 +379,33 @@ function fetchTeacherId(subjectId) {
             alert('Не удалось загрузить данные преподавателя');
         });
 }
-</script>
 
+  // обработчик для кнопки добавить предмет
+document.addEventListener("DOMContentLoaded", function () {
+    const modal = document.getElementById('addRecordSubjectModal');
+    if (modal) {
+        modal.addEventListener('shown.bs.modal', function () {
+            console.log('Модальное окно "Добавить предмет" открыто');
+
+            // Получаем subjectId из текущей вкладки
+            const { subjectId,classId } = getCurrentClassId() || {};
+
+            if (!subjectId) {
+                alert('Не найден subject_id!');
+                console.error('subject_id не найден');
+                return;
+            }
+
+            console.log('Найден subject_id:', subjectId);
+
+            // Вызываем функцию для получения teacher_id
+            fetchTeacherId(subjectId);
+        });
+    } else {
+        console.warn('Модальное окно #addRecordSubjectModal не найдено');
+    }
+});
+</script>
 </div>
 
 

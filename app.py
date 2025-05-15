@@ -995,11 +995,10 @@ def add_student():
 
 @app.route("/add_class", methods=["POST"])
 @login_required
-def add_subject():
+def add_class():
     classname = request.form.get("classname")
     subject_id = request.form.get("subject_id")
     teacher_id = request.form.get("teacher_id")
-
     if not all([subject_id, teacher_id]):
         flash("Невозможно опознать учителя или предмет", "error")
         return redirect(url_for('posts'))
@@ -1008,12 +1007,11 @@ def add_subject():
         flash("Необходимо заполнить все поля", "error")
         return redirect(url_for('posts'))
     
-    print(classname,subject_id,teacher_id)
+
     teacher_subject = Teacher_subject.query.filter_by(
     teacher_id=teacher_id,
     subject_id=subject_id
         ).first()
-    print(teacher_subject.id)
     if teacher_subject:
             teacher_subject_id = teacher_subject.id
             
@@ -1037,6 +1035,37 @@ def add_subject():
     except Exception as e:
         db.session.rollback()
         flash(f"Ошибка при добавлении класса: {str(e)}", "error")
+
+    return redirect(url_for('posts'))
+
+@app.route("/add_subject", methods=["POST"])
+@login_required
+def add_subject():
+    subjectsname = request.form.get("subjectsname")
+    teacher_id = request.form.get("teacher_id")
+    print(subjectsname,teacher_id)
+    if not subjectsname:
+        flash("Необходимо заполнить все поля", "error")
+        return redirect(url_for('posts'))
+
+    try:
+        # Создаём новый предмет
+        new_subject = Subjects(subject_name=escape(subjectsname))
+        db.session.add(new_subject)
+        db.session.flush()  # Чтобы получить ID нового предмета
+
+        # Создаём связь между преподавателем и предметом
+        new_teacher_subject = Teacher_subject(
+            teacher_id=teacher_id,
+            subject_id=new_subject.id
+        )
+        db.session.add(new_teacher_subject)
+
+        db.session.commit()
+        flash("Предмет успешно добавлен!", "success")
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Ошибка при добавлении предмета: {str(e)}", "error")
 
     return redirect(url_for('posts'))
 
