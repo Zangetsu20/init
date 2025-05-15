@@ -583,8 +583,153 @@ def about():
     return render_template('about.html')
 
 @app.route("/abot")
+@login_required
 def abot():
-    return render_template('abot.html')
+    # Очищаем session storage при первом заходе
+    if not request.args.get('year') and not request.args.get('month'):
+        session.pop('activeSubjectTab', None)
+        session.pop('activeClassTab', None)
+    
+    # Получаем параметры фильтрации
+    selected_year = request.args.get('year', type=int)
+    selected_month = request.args.get('month', type=int)
+    
+    # Если параметров нет, проверяем localStorage через cookies
+    if selected_year is None or selected_month is None:
+        stored_year = request.cookies.get('selectedYear')
+        stored_month = request.cookies.get('selectedMonth')
+        if stored_year and stored_month:
+            selected_year = int(stored_year)
+            selected_month = int(stored_month)
+    # Если все еще нет - используем текущую дату
+    if selected_year is None:
+        selected_year = datetime.now().year
+    if selected_month is None:
+        selected_month = datetime.now().month
+        
+    # Проверяем, является ли пользователь администратором
+    is_admin = current_user.teacher_id == 12
+    
+    if is_admin:
+        subjects = Subjects.query.order_by(Subjects.subject_name).all()
+    else:
+        if not current_user.teacher_id:
+            flash('У вас нет привязанного профиля учителя', 'error')
+            return redirect(url_for('index'))
+        
+        teacher_id = current_user.teacher_id
+        teacher_subjects = Teacher_subject.query.filter_by(teacher_id=teacher_id).all()
+        subject_ids = [ts.subject_id for ts in teacher_subjects]
+        subjects = Subjects.query.filter(Subjects.id.in_(subject_ids)).order_by(Subjects.subject_name).all()
+    
+    # Получаем доступные годы из базы
+    min_year = db.session.query(db.extract('year', db.func.min(Grades.date))).scalar() or datetime.now().year
+    max_year = db.session.query(db.extract('year', db.func.max(Grades.date))).scalar() or datetime.now().year
+    available_years = list(range(min_year, max_year + 1))
+    
+    subjects_data = []
+    
+    for subject in subjects:
+        if is_admin:
+            teacher_subjects = Teacher_subject.query.filter_by(subject_id=subject.id).all()
+            teacher_subject_ids = [ts.id for ts in teacher_subjects]
+            class_links = Teacher_subject_class.query.filter(
+                Teacher_subject_class.teacher_subject_id.in_(teacher_subject_ids)
+            ).all()
+        else:
+            teacher_subject = Teacher_subject.query.filter_by(
+                teacher_id=current_user.teacher_id,
+                subject_id=subject.id
+            ).first()
+            if not teacher_subject:
+                continue
+            
+            class_links = Teacher_subject_class.query.filter_by(
+                teacher_subject_id=teacher_subject.id
+            ).all()
+        
+        classes_data = []
+        for cl in class_links:
+            class_info = Classes.query.get(cl.class_id)
+            if not class_info:
+                continue
+            
+            # Получаем имя преподавателя (для админа)
+            teacher_name = ""
+            if is_admin:
+                ts = Teacher_subject.query.get(cl.teacher_subject_id)
+                if ts:
+                    teacher = Teachers.query.get(ts.teacher_id)
+                    if teacher:
+                        teacher_name = f"{teacher.last_name} {teacher.first_name}"
+
+            # Получаем всех студентов класса
+            students = Students.query.filter_by(class_id=class_info.id)\
+                .order_by(Students.last_name, Students.first_name).all()
+            
+            if not students:
+                classes_data.append({
+                    'class_id': class_info.id,
+                    'class_name': class_info.class_name,
+                    'teacher_name': teacher_name,
+                    'students': [],
+                    'max_day': 0
+                })
+                continue
+            
+            # Получаем все оценки для этого класса и предмета за выбранный период
+            all_grades = Grades.query.filter(
+                Grades.teacher_subject_class_id == cl.id,
+                db.extract('year', Grades.date) == selected_year,
+                db.extract('month', Grades.date) == selected_month
+            ).all()
+            
+            # Находим максимальный день в классе (по всем студентам)
+            max_day = max([grade.date.day for grade in all_grades]) if all_grades else 0
+            
+            students_data = []
+            for student in students:
+                # Фильтруем оценки только для текущего студента
+                student_grades = [g for g in all_grades if g.student_id == student.id]
+                
+                # Считаем пропуски ("н")
+                absent_count = sum(1 for g in student_grades if g.grade == 'н')
+                # Рассчитываем процент посещаемости
+                attendance_percent = 0
+                if max_day > 0:
+                    attendance_percent = round(((max_day - absent_count) / max_day) * 100)
+                
+                students_data.append({
+                    'last_name': student.last_name,
+                    'first_name': student.first_name,
+                    'student_id': student.id,
+                    'absent_count': absent_count,
+                    'has_records': len(student_grades) > 0,
+                    'attendance_percent': attendance_percent  # Добавляем расчетный процент
+                })
+            
+            classes_data.append({
+                'class_id': class_info.id,
+                'class_name': class_info.class_name,
+                'teacher_name': teacher_name,
+                'students': students_data,
+                'max_day': max_day
+            })
+        
+        if classes_data:
+            subjects_data.append({
+                'subject_id': subject.id,
+                'subject_name': subject.subject_name,
+                'classes': classes_data
+            })
+    
+    return render_template('abot.html', 
+                         subjects_data=subjects_data,
+                         is_admin=is_admin,
+                         available_years=available_years,
+                         available_months=list(range(1, 13)),
+                         selected_year=selected_year,
+                         selected_month=selected_month)
 
 @app.route("/register", methods=['GET', 'POST'])
 def register():

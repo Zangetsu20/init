@@ -1,9 +1,142 @@
 {% extends 'base.html' %}
 
-{% block title %}
-График
-{% endblock %}
+{% block title %}Создание записей{% endblock %}
 
 {% block content %}
 
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Анализ успеваемости учащихся</h2>
+    </div>
+
+    {% if is_admin %}
+    <div class="alert alert-info mb-3">
+        <i class="bi bi-shield-lock"></i> Режим администратора: вы видите все данные системы
+    </div>
+    {% endif %}
+
+    {% if not subjects_data %}
+    <div class="alert alert-warning">
+        Нет доступных данных для отображения
+    </div>
+    {% else %}
+    <!-- Основные вкладки (предметы) -->
+    <ul class="nav nav-tabs" id="subjectTabs" role="tablist">
+        {% for subject in subjects_data %}
+        <li class="nav-item" role="presentation">
+            <button class="nav-link {% if loop.first %}active{% endif %}" 
+                    id="subject-{{ subject.subject_id }}-tab" 
+                    data-bs-toggle="tab" 
+                    data-bs-target="#subject-{{ subject.subject_id }}" 
+                    type="button" 
+                    role="tab" 
+                    aria-controls="subject-{{ subject.subject_id }}" 
+                    aria-selected="{% if loop.first %}true{% else %}false{% endif %}">
+                {{ subject.subject_name }}
+            </button>
+        </li>
+        {% endfor %}
+    </ul>
+
+    <!-- Контент основных вкладок -->
+    <div class="tab-content p-3 border border-top-0 rounded-bottom" id="subjectTabsContent">
+        {% for subject in subjects_data %}
+        <div class="tab-pane fade {% if loop.first %}show active{% endif %}" 
+             id="subject-{{ subject.subject_id }}" 
+             role="tabpanel" 
+             aria-labelledby="subject-{{ subject.subject_id }}-tab">
+            
+            {% if not subject.classes %}
+            <div class="alert alert-warning mt-3">
+                Нет классов по этому предмету
+            </div>
+            {% else %}
+            <!-- Вложенные вкладки (классы) -->
+            <ul class="nav nav-tabs mt-3" id="classTabs-{{ subject.subject_id }}" role="tablist">
+                {% for class_info in subject.classes %}
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link {% if loop.first %}active{% endif %}" 
+                            id="class-{{ class_info.class_id }}-tab" 
+                            data-bs-toggle="tab" 
+                            data-bs-target="#class-{{ subject.subject_id }}-{{ class_info.class_id }}" 
+                            type="button" 
+                            role="tab" 
+                            aria-controls="class-{{ subject.subject_id }}-{{ class_info.class_id }}" 
+                            aria-selected="{% if loop.first %}true{% else %}false{% endif %}">
+                        {{ class_info.class_name }}
+                        {% if is_admin and class_info.teacher_name %}
+                        <small class="text-muted ms-2">({{ class_info.teacher_name }})</small>
+                        {% endif %}
+                    </button>
+                </li>
+                {% endfor %}
+            </ul>
+            
+            <!-- Контент вложенных вкладок -->
+            <div class="tab-content p-3 border border-top-0 rounded-bottom" id="classTabsContent-{{ subject.subject_id }}">
+                {% for class_info in subject.classes %}
+                <div class="tab-pane fade {% if loop.first %}show active{% endif %}" 
+                     id="class-{{ subject.subject_id }}-{{ class_info.class_id }}" 
+                     role="tabpanel" 
+                     aria-labelledby="class-{{ class_info.class_id }}-tab">
+                    
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5>Класс: {{ class_info.class_name }}</h5>
+                        {% if is_admin and class_info.teacher_name %}
+                        <div class="text-muted">Преподаватель: {{ class_info.teacher_name }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    {% if not class_info.students %}
+                    <div class="alert alert-warning">
+                        В этом классе нет студентов
+                    </div>
+                    {% else %}
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width: 50px">№</th>
+                                    <th style="width: 250px">Фамилия Имя</th>
+                                    <th>Посещено</th>
+                                    <th>Всего</th>
+                                    <th>Показатель</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if class_info.students %}
+                                    {% for student in class_info.students %}
+                                    <tr>
+                                        <td>{{ loop.index }}</td>
+                                        <td>{{ student.last_name }} {{ student.first_name }}</td>
+                                        <td>
+                                            {% if class_info.max_day!=0 %}
+                                                {{ class_info.max_day - student.absent_count }}
+                                            {% else %}
+                                                0
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ class_info.max_day if class_info.max_day!=0 else 0 }}</td>
+                                        <td>
+ц
+                                        </td>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="5" class="text-center">Нет студентов в классе</td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
 {% endblock %}

@@ -138,6 +138,12 @@ header, footer {
     max-width: 200px;
 }
 
+.nav-link.active {
+    background-color: #0d6efd; /* голубой */
+    color: white !important;
+    border-radius: 4px;
+}
+
 /* Остальные столбцы */
 .table td:not(:nth-child(2)), .table th:not(:nth-child(2)) {
     min-width: 40px; /* Минимальная ширина */
