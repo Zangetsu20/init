@@ -140,7 +140,7 @@ header, footer {
 
 .nav-link.active {
     background-color: #0d6efd; /* голубой */
-    color: white !important;
+    /*color: white !important; */
     border-radius: 4px;
 }
 
