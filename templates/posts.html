@@ -12,8 +12,9 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
             </div>
             <div class="modal-body">
-                <form method="post" class="needs-validation" novalidate>
+                <form method="post" action="/add_student" id="addStudentForm" class="needs-validation" novalidate>
                     <div class="mb-3">
+                        <input type="hidden" name="classid" id="classIdInput">
                         <label for="firstname" class="form-label">Фамилия</label>
                         <input type="text" name="firstname" class="form-control" id="firstname" required>
                         <div class="invalid-feedback">Введите фамилию</div>
@@ -41,6 +42,7 @@
             <div class="modal-body">
                 <form method="post" class="needs-validation" novalidate>
                     <div class="mb-3">
+                        <input type="hidden" name="table" id="classIdInput">
                         <label for="firstname" class="form-label">Класс</label>
                         <input type="text" name="firstname" class="form-control" id="firstname" required>
                         <div class="invalid-feedback">Введите Класс</div>
@@ -270,6 +272,38 @@
         {% endfor %}
     </div>
     {% endif %}
+
+<script>
+  // обработчик для кнопки добавить челика
+document.addEventListener("DOMContentLoaded", function () {
+    const modal = document.getElementById('addRecordModal');
+    if (modal) {
+        modal.addEventListener('shown.bs.modal', function () {
+            console.log(' Модальное окно "Добавить ученика" открыто');
+
+            const { subjectId, classId } = getCurrentClassId() || {};
+
+            if (classId) {
+                console.log(' Найден class_id:', classId);
+                console.log(' subject_id:', subjectId);
+
+                const hiddenInput = document.getElementById('classIdInput');
+                if (hiddenInput) {
+                    hiddenInput.value = classId;
+                    console.log(' class_id записан в форму');
+                } else {
+                    console.error(' Скрытое поле classIdInput не найдено');
+                }
+
+            } else {
+                console.error(' class_id не найден');
+            }
+        });
+    } else {
+        console.warn(' Модальное окно #addRecordModal не найдено');
+    }
+});
+</script>
 </div>
 
 
@@ -299,7 +333,7 @@ function addNewDate() {
     // 4. Находим активные вкладки
     const activeSubjectPane = document.querySelector('#subjectTabsContent .tab-pane.active');
     const activeClassPane = activeSubjectPane?.querySelector('.tab-pane.active');
-    
+
     if (!activeSubjectPane || !activeClassPane) {
         alert("Не удалось определить активный класс");
         return;
@@ -446,7 +480,7 @@ function updateTable(year, month, keepScroll = false) {
                 
                 if (newContent) {
                     document.querySelector('.container').replaceWith(newContent);
-                    
+                    initAddStudentModal();
                     setTimeout(() => {
                         restoreActiveTabs();
                         preventTabSave = false;
@@ -810,6 +844,62 @@ document.querySelectorAll('[contenteditable="true"]').forEach(cell => {
         initGradeEditors();
         this.dataset.originalValue = this.textContent;
     });
+});
+
+function getCurrentClassId() {
+    const activeSubjectPane = document.querySelector('#subjectTabsContent .tab-pane.active');
+    const activeClassPane = activeSubjectPane?.querySelector('.tab-pane.active');
+
+    if (!activeClassPane) return null;
+
+    // Получаем class_id из id вкладки (формат id: "class-subject_id-class_id")
+    const match = activeClassPane.id.match(/class-(\d+)-(\d+)/);
+    if (!match) return null;
+
+    const subjectId = match[1];
+    const classId = match[2];
+
+    return { subjectId, classId };
+}
+
+function initAddStudentModal() {
+    const modal = document.getElementById('addRecordModal');
+    if (!modal) return;
+
+    // Удаляем старый обработчик, чтобы избежать дублирования
+    const existingHandler = modal.dataset.handler;
+    if (existingHandler) {
+        modal.removeEventListener('shown.bs.modal', window.addStudentModalHandler);
+    }
+
+    // Создаем новый обработчик
+    window.addStudentModalHandler = function () {
+        console.log(' Модальное окно "Добавить ученика" открыто');
+
+        const { subjectId, classId } = getCurrentClassId() || {};
+
+        if (classId) {
+            console.log(' Найден class_id:', classId);
+
+            const hiddenInput = document.getElementById('classIdInput');
+            if (hiddenInput) {
+                hiddenInput.value = classId;
+                console.log(' class_id записан в форму');
+            } else {
+                console.error(' Скрытое поле classIdInput не найдено');
+            }
+
+        } else {
+            console.error(' class_id не найден');
+        }
+    };
+
+    modal.addEventListener('shown.bs.modal', window.addStudentModalHandler);
+    modal.dataset.handler = 'true';
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+    initAddStudentModal();  // Инициализация при первой загрузке
 });
 </script>
 {% endblock %}

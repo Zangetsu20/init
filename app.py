@@ -738,7 +738,32 @@ def download_all_zip():
         flash(f'Ошибка при создании архива: {str(e)}', 'error')
         return redirect(url_for('posts'))
 
+@app.route("/add_student", methods=["POST"])
+@login_required
+def add_student():
+    firstname = request.form.get("firstname")
+    lastname = request.form.get("lastname")
+    classid = request.form.get("classid")
+    print(classid,lastname,firstname)
 
+    if not firstname or not lastname:
+        flash("Необходимо заполнить все поля", "error")
+        return redirect(url_for('posts'))
+
+    try:
+        new_student = Students(
+            first_name=escape(firstname),
+            last_name=escape(lastname),
+            class_id=escape(classid)
+        )
+        db.session.add(new_student)
+        db.session.commit()
+        flash("Студент успешно добавлен", "success")
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Ошибка при добавлении студента: {str(e)}", "error")
+
+    return redirect(url_for('posts'))
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
