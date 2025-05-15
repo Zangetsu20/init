@@ -99,8 +99,10 @@
                                     <th style="width: 50px">№</th>
                                     <th style="width: 250px">Фамилия Имя</th>
                                     <th>Посещено</th>
-                                    <th>Всего</th>
-                                    <th>Показатель</th>
+                                    <th>Среднее по всем дням</th>
+                                    <th>Среднее без пропусков</th>
+                                    <th>Среднее грубо</th>
+                                    <th>Примерная оценка</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -109,21 +111,50 @@
                                     <tr>
                                         <td>{{ loop.index }}</td>
                                         <td>{{ student.last_name }} {{ student.first_name }}</td>
+
                                         <td>
-                                            {% if class_info.max_day!=0 %}
+                                            {% if class_info.max_day != 0 %}
                                                 {{ class_info.max_day - student.absent_count }}
                                             {% else %}
                                                 0
                                             {% endif %}
-                                        </td>
-                                        <td>{{ class_info.max_day if class_info.max_day!=0 else 0 }}</td>
+                                            из
+                                            {{ class_info.max_day if class_info.max_day != 0 else 0 }}</td>
+
+                                        <!-- Новые столбцы -->
                                         <td>
-ц
+                                            {% if student.avg_grade_all is not none %}
+                                                {{ student.avg_grade_all }}
+                                            {% else %}
+                                                –
+                                            {% endif %}
                                         </td>
+                                        <td>
+                                            {% if student.avg_grade_present is not none %}
+                                                {{ student.avg_grade_present }}
+                                            {% else %}
+                                                –
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if student.avg_grade_rude is not none %}
+                                                {{ student.avg_grade_rude }}
+                                            {% else %}
+                                                –
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if student.avg_grade_rude is not none or student.avg_grade_present is not none or student.avg_grade_all is not none %}
+                                                {{ "%.1f"|format((student.avg_grade_all+student.avg_grade_present+student.avg_grade_rude)/3) }}
+                                            {% else %}
+                                                –
+                                            {% endif %}
+                                        </td>
+                                    </tr>
                                     {% endfor %}
                                 {% else %}
                                     <tr>
-                                        <td colspan="5" class="text-center">Нет студентов в классе</td>
+                                        <td colspan="6" class="text-center">Нет студентов в классе</td>
                                     </tr>
                                 {% endif %}
                             </tbody>

@@ -694,6 +694,35 @@ def abot():
                 
                 # Считаем пропуски ("н")
                 absent_count = sum(1 for g in student_grades if g.grade == 'н')
+                
+                # Собираем только числовые оценки
+                numeric_grades = [
+                    int(g.grade) for g in student_grades 
+                    if g.grade.isdigit()
+                ]
+                
+                # Количество дней с оценками (только цифры)
+                graded_days = len(numeric_grades)
+
+                # Среднее грубо: сумма оценок / количество оцененных дней
+                avg_grade_rude = None
+                if graded_days > 0:
+                    avg_grade_rude = round(sum(numeric_grades) / graded_days, 2)
+                
+                total_days = max_day  # Всего дней
+                present_days = total_days - absent_count if total_days else 0
+                    
+                avg_grade_all = None
+                avg_grade_present = None
+                    
+                if numeric_grades:
+                    total_grade_sum = sum(numeric_grades)
+                        
+                    if total_days > 0:
+                            avg_grade_all = round(total_grade_sum / total_days, 2)
+                            
+                    if present_days > 0:
+                            avg_grade_present = round(total_grade_sum / present_days, 2)
                 # Рассчитываем процент посещаемости
                 attendance_percent = 0
                 if max_day > 0:
@@ -705,7 +734,10 @@ def abot():
                     'student_id': student.id,
                     'absent_count': absent_count,
                     'has_records': len(student_grades) > 0,
-                    'attendance_percent': attendance_percent  # Добавляем расчетный процент
+                    'attendance_percent': attendance_percent,  # Добавляем расчетный процент
+                    'avg_grade_all': avg_grade_all,        # Среднее по всем дням
+                    'avg_grade_present': avg_grade_present, # Среднее без учёта "н"
+                    'avg_grade_rude': avg_grade_rude #среднее только по оцененным дням
                 })
             
             classes_data.append({
