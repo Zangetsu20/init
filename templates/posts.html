@@ -282,64 +282,111 @@
     {% endif %}
 
 <script>
-  // обработчик для кнопки добавить челика
-document.addEventListener("DOMContentLoaded", function () {
+
+// Общая функция для инициализации всех модальных окон
+function initAllModals() {
+    initAddStudentModal();
+    initAddClassModal();
+    initAddSubjectModal();
+}
+
+// Инициализация модального окна добавления ученика
+function initAddStudentModal() {
     const modal = document.getElementById('addRecordModal');
-    if (modal) {
-        modal.addEventListener('shown.bs.modal', function () {
-            console.log(' Модальное окно "Добавить ученика" открыто');
+    if (!modal) return;
 
-            const { subjectId, classId } = getCurrentClassId() || {};
+    // Удаляем старый обработчик, чтобы избежать дублирования
+    const existingHandler = modal.dataset.handler;
+    if (existingHandler) {
+        modal.removeEventListener('shown.bs.modal', window.addStudentModalHandler);
+    }
 
-            if (classId) {
-                console.log(' Найден class_id:', classId);
-                console.log(' subject_id:', subjectId);
+    // Создаем новый обработчик
+    window.addStudentModalHandler = function () {
+        console.log('Модальное окно "Добавить ученика" открыто');
+        const { subjectId, classId } = getCurrentClassId() || {};
 
-                const hiddenInput = document.getElementById('classIdInput');
-                if (hiddenInput) {
-                    hiddenInput.value = classId;
-                    console.log(' class_id записан в форму');
-                } else {
-                    console.error(' Скрытое поле classIdInput не найдено');
-                }
+        if (classId) {
+            console.log('Найден class_id:', classId);
+            console.log('subject_id:', subjectId);
 
+            const hiddenInput = document.getElementById('classIdInput');
+            if (hiddenInput) {
+                hiddenInput.value = classId;
+                console.log('class_id записан в форму');
             } else {
-                console.error(' class_id не найден');
+                console.error('Скрытое поле classIdInput не найдено');
             }
-        });
-    } else {
-        console.warn(' Модальное окно #addRecordModal не найдено');
-    }
-});
-</script>
-<script>
-  // обработчик для кнопки добавить класс
-document.addEventListener("DOMContentLoaded", function () {
+        } else {
+            console.error('class_id не найден');
+        }
+    };
+
+    modal.addEventListener('shown.bs.modal', window.addStudentModalHandler);
+    modal.dataset.handler = 'true';
+}
+
+// Инициализация модального окна добавления класса
+function initAddClassModal() {
     const modal = document.getElementById('addRecordClassModal');
-    if (modal) {
-        modal.addEventListener('shown.bs.modal', function () {
-            console.log('Модальное окно "Добавить класс" открыто');
+    if (!modal) return;
 
-            // Получаем subjectId из текущей вкладки
-            const { subjectId } = getCurrentClassId() || {};
-
-            if (!subjectId) {
-                alert('Не найден subject_id!');
-                console.error('subject_id не найден');
-                return;
-            }
-
-            console.log('Найден subject_id:', subjectId);
-
-            // Вызываем функцию для получения teacher_id
-            fetchTeacherId(subjectId);
-        });
-    } else {
-        console.warn('Модальное окно #addRecordClassModal не найдено');
+    // Удаляем старый обработчик
+    const existingHandler = modal.dataset.handler;
+    if (existingHandler) {
+        modal.removeEventListener('shown.bs.modal', window.addClassModalHandler);
     }
-});
 
-    //запрос fetch для id учителя
+    // Создаем новый обработчик
+    window.addClassModalHandler = function() {
+        console.log('Модальное окно "Добавить класс" открыто');
+        const { subjectId } = getCurrentClassId() || {};
+        
+        if (!subjectId) {
+            alert('Не найден subject_id!');
+            console.error('subject_id не найден');
+            return;
+        }
+        
+        console.log('Найден subject_id:', subjectId);
+        fetchTeacherId(subjectId);
+    };
+
+    modal.addEventListener('shown.bs.modal', window.addClassModalHandler);
+    modal.dataset.handler = 'true';
+}
+
+// Инициализация модального окна добавления предмета
+function initAddSubjectModal() {
+    const modal = document.getElementById('addRecordSubjectModal');
+    if (!modal) return;
+
+    // Удаляем старый обработчик
+    const existingHandler = modal.dataset.handler;
+    if (existingHandler) {
+        modal.removeEventListener('shown.bs.modal', window.addSubjectModalHandler);
+    }
+
+    // Создаем новый обработчик
+    window.addSubjectModalHandler = function() {
+        console.log('Модальное окно "Добавить предмет" открыто');
+        const { subjectId } = getCurrentClassId() || {};
+        
+        if (!subjectId) {
+            alert('Не найден subject_id!');
+            console.error('subject_id не найден');
+            return;
+        }
+        
+        console.log('Найден subject_id:', subjectId);
+        fetchTeacherId(subjectId);
+    };
+
+    modal.addEventListener('shown.bs.modal', window.addSubjectModalHandler);
+    modal.dataset.handler = 'true';
+}
+
+// Функция для получения teacher_id
 function fetchTeacherId(subjectId) {
     fetch(`/get_teacher_id?subject_id=${subjectId}`)
         .then(response => response.json())
@@ -347,28 +394,16 @@ function fetchTeacherId(subjectId) {
             if (data.success) {
                 console.log('Данные успешно получены:', data);
 
-                // Записываем teacher_id в форму
-                const classteacherInput = document.getElementById('classTeacherIdInput');
-                if (classteacherInput) {
-                    classteacherInput.value = data.teacher_id;
-                }
-                const subjectteacherInput = document.getElementById('subjectTeacherIdInput');
-                if (subjectteacherInput) {
-                    subjectteacherInput.value = data.teacher_id;
-                }
+                // Записываем teacher_id в формы
+                const classTeacherInput = document.getElementById('classTeacherIdInput');
+                const subjectTeacherInput = document.getElementById('subjectTeacherIdInput');
+                
+                if (classTeacherInput) classTeacherInput.value = data.teacher_id;
+                if (subjectTeacherInput) subjectTeacherInput.value = data.teacher_id;
 
-                // Если нужно — можно записать subject_id тоже
-                const subjectInput = document.getElementById('subjectIdInput'); // если есть такое поле
-                if (subjectInput) {
-                    subjectInput.value = data.subject_id;
-                }
-
-                // Открываем модальное окно (если оно не открыто)
-                //const modalElement = document.getElementById('addRecordClassModal');
-                //const modalInstance = bootstrap.Modal.getInstance(modalElement);
-                // if (!modalInstance._isShown) {
-                //    modalInstance.show();
-                //}
+                // Записываем subject_id в форму класса
+                const subjectInput = document.getElementById('subjectIdInput');
+                if (subjectInput) subjectInput.value = data.subject_id;
             } else {
                 alert('Ошибка: ' + (data.error || 'Не удалось получить данные'));
                 console.error('Ошибка получения teacher_id:', data.error);
@@ -380,184 +415,21 @@ function fetchTeacherId(subjectId) {
         });
 }
 
-  // обработчик для кнопки добавить предмет
-document.addEventListener("DOMContentLoaded", function () {
-    const modal = document.getElementById('addRecordSubjectModal');
-    if (modal) {
-        modal.addEventListener('shown.bs.modal', function () {
-            console.log('Модальное окно "Добавить предмет" открыто');
-
-            // Получаем subjectId из текущей вкладки
-            const { subjectId,classId } = getCurrentClassId() || {};
-
-            if (!subjectId) {
-                alert('Не найден subject_id!');
-                console.error('subject_id не найден');
-                return;
-            }
-
-            console.log('Найден subject_id:', subjectId);
-
-            // Вызываем функцию для получения teacher_id
-            fetchTeacherId(subjectId);
-        });
-    } else {
-        console.warn('Модальное окно #addRecordSubjectModal не найдено');
-    }
-});
-</script>
-</div>
-
-
-<script>
-function addNewDate() {
-    // Сохраняем текущие активные вкладки перед выполнением
-    const currentSubjectTab = document.querySelector('#subjectTabs .nav-link.active');
-    const currentClassTab = document.querySelector('.tab-pane.active .nav-link.active');
-    const currentSubjectTabId = currentSubjectTab ? `#${currentSubjectTab.id}` : null;
-    const currentClassTabId = currentClassTab ? `#${currentClassTab.id}` : null;
-
-    // 1. Получаем текущие год и месяц
-    const urlParams = new URLSearchParams(window.location.search);
-    const year = urlParams.get('year') || new Date().getFullYear();
-    const month = urlParams.get('month') || new Date().getMonth() + 1;
-    
-    // 2. Запрашиваем у пользователя день
-    const day = prompt("Введите день месяца (1-31):");
-    if (!day || isNaN(day) || day < 1 || day > 31) {
-        alert("Некорректный день. Введите число от 1 до 31");
-        return;
-    }
-    
-    // 3. Форматируем дату
-    const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    
-    // 4. Находим активные вкладки
+// Функция для получения текущего class_id и subject_id
+function getCurrentClassId() {
     const activeSubjectPane = document.querySelector('#subjectTabsContent .tab-pane.active');
     const activeClassPane = activeSubjectPane?.querySelector('.tab-pane.active');
+    if (!activeClassPane) return null;
 
-    if (!activeSubjectPane || !activeClassPane) {
-        alert("Не удалось определить активный класс");
-        return;
-    }
-    
-    // 5. Получаем ID класса из структуры DOM
-    const classHeader = activeClassPane.querySelector('h5');
-    if (!classHeader) {
-        alert("Не найден заголовок класса");
-        return;
-    }
-    
-    // 6. Находим таблицу и первую ячейку с данными
-    const table = activeClassPane.querySelector('table');
-    const firstCellWithData = table?.querySelector('[data-teacher-subject-class-id]');
-    
-    if (!firstCellWithData) {
-        // Если нет ячеек с данными, пробуем получить teacher_subject_class_id из структуры
-        const classIdMatch = activeClassPane.id.match(/class-(\d+)-(\d+)/);
-        if (!classIdMatch) {
-            alert("Не удалось определить параметры класса");
-            return;
-        }
-        
-        const subjectId = classIdMatch[1];
-        const classId = classIdMatch[2];
-        
-        // Запрашиваем данные через API
-        fetch(`/get_class_data?class_id=${classId}&subject_id=${subjectId}`)
-            .then(response => response.json())
-            .then(data => {
-                if (!data.teacher_subject_class_id) {
-                    throw new Error("Не удалось получить данные класса");
-                }
-                
-                // Используем первого ученика или создаем временную запись
-                const studentId = data.first_student_id || 0;
-                
-                return fetch('/update_grade', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        student_id: studentId,
-                        date: dateStr,
-                        teacher_subject_class_id: data.teacher_subject_class_id,
-                        new_grade: " "
-                    })
-                });
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // Восстанавливаем сохраненные вкладки после обновления
-                    updateTable(year, month, true).then(() => {
-                        if (currentSubjectTabId) {
-                            const tab = document.querySelector(currentSubjectTabId);
-                            if (tab) new bootstrap.Tab(tab).show();
-                        }
-                        if (currentClassTabId) {
-                            const tab = document.querySelector(currentClassTabId);
-                            if (tab) new bootstrap.Tab(tab).show();
-                        }
-                    });
-                } else {
-                    throw new Error(data.error || 'Ошибка сервера');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Ошибка: ' + error.message);
-            });
-        return;
-    }
-    
-    // 7. Если есть данные в таблице, используем их
-    const studentId = firstCellWithData.dataset.studentId;
-    const teacherSubjectClassId = firstCellWithData.dataset.teacherSubjectClassId;
-    
-    fetch('/update_grade', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            student_id: studentId,
-            date: dateStr,
-            teacher_subject_class_id: teacherSubjectClassId,
-            new_grade: " "
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            // Восстанавливаем сохраненные вкладки после обновления
-            updateTable(year, month, true).then(() => {
-                if (currentSubjectTabId) {
-                    const tab = document.querySelector(currentSubjectTabId);
-                    if (tab) new bootstrap.Tab(tab).show();
-                }
-                if (currentClassTabId) {
-                    const tab = document.querySelector(currentClassTabId);
-                    if (tab) new bootstrap.Tab(tab).show();
-                }
-            });
-        } else {
-            throw new Error(data.error || 'Ошибка сервера');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('Ошибка: ' + error.message);
-    });
+    const match = activeClassPane.id.match(/class-(\d+)-(\d+)/);
+    if (!match) return null;
+
+    const subjectId = match[1];
+    const classId = match[2];
+    return { subjectId, classId };
 }
 
-// Добавим флаг для отслеживания первого обновления
-let isFirstUpdate = true;
-
-let isInitialLoad = true;
-let preventTabSave = false;
-
+// Модифицированная функция updateTable для инициализации модальных окон после обновления
 function updateTable(year, month, keepScroll = false) {
     return new Promise((resolve) => {
         const scrollPosition = keepScroll ? window.scrollY : null;
@@ -582,7 +454,8 @@ function updateTable(year, month, keepScroll = false) {
                 
                 if (newContent) {
                     document.querySelector('.container').replaceWith(newContent);
-                    initAddStudentModal();
+                    // Инициализируем все модальные окна после обновления контента
+                    initAllModals();
                     setTimeout(() => {
                         restoreActiveTabs();
                         preventTabSave = false;
@@ -603,253 +476,6 @@ function updateTable(year, month, keepScroll = false) {
             });
     });
 }
-
-// Модифицируем restoreActiveTabs для работы с первым обновлением
-function restoreActiveTabs() {
-    setTimeout(() => {
-        // 1. Восстанавливаем вкладку предмета
-        const activeSubjectTabId = sessionStorage.getItem('activeSubjectTab');
-        if (activeSubjectTabId) {
-            const subjectTab = document.querySelector(activeSubjectTabId);
-            if (subjectTab) {
-                new bootstrap.Tab(subjectTab).show();
-                
-                // 2. После активации предмета восстанавливаем вкладку класса
-                setTimeout(() => {
-                    const activeClassTabId = sessionStorage.getItem('activeClassTab');
-                    if (activeClassTabId) {
-                        const classTab = document.querySelector(activeClassTabId);
-                        if (classTab) {
-                            new bootstrap.Tab(classTab).show();
-                        }
-                    }
-                }, 100);
-            }
-        }
-    }, 150);
-}
-
-
-// Глобальный обработчик для всех редактируемых ячеек
-document.addEventListener('DOMContentLoaded', function() {
-    // Используем делегирование событий для динамически добавляемых элементов
-    document.body.addEventListener('focus', function(e) {
-        if (e.target.hasAttribute('contenteditable') && e.target.getAttribute('contenteditable') === 'true') {
-            e.target.dataset.originalValue = e.target.textContent;
-        }
-    }, true);
-
-    document.body.addEventListener('blur', function(e) {
-        if (e.target.hasAttribute('contenteditable') && e.target.getAttribute('contenteditable') === 'true') {
-            saveGrade(e.target);
-        }
-    }, true);
-
-    document.body.addEventListener('keydown', function(e) {
-        if (e.target.hasAttribute('contenteditable') && e.target.getAttribute('contenteditable') === 'true') {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                saveGrade(e.target);
-            } else if (e.key === 'Escape') {
-                e.target.textContent = e.target.dataset.originalValue;
-                e.target.blur();
-            }
-        }
-    }, true);
-});
-
-// Добавим сброс флага при загрузке страницы
-document.addEventListener('DOMContentLoaded', function() {
-    isFirstUpdate = true;
-    
-    const urlParams = new URLSearchParams(window.location.search);
-    let year = urlParams.get('year');
-    let month = urlParams.get('month');
-    
-    if (!year || !month) {
-        year = localStorage.getItem('selectedYear') || new Date().getFullYear();
-        month = localStorage.getItem('selectedMonth') || new Date().getMonth() + 1;
-    }
-    
-    document.getElementById('yearDropdown').textContent = `Год: ${year}`;
-    document.getElementById('monthDropdown').textContent = `Месяц: ${getMonthName(month)}`;
-    
-    setupTabListeners();
-    
-    if (!window.location.search.includes('year=')) {
-        updateTable(year, month, true);
-    } else {
-        restoreActiveTabs();
-    }
-});
-
-document.addEventListener('DOMContentLoaded', function() {
-    isInitialLoad = true;
-    preventTabSave = false;
-    
-    const urlParams = new URLSearchParams(window.location.search);
-    let year = urlParams.get('year');
-    let month = urlParams.get('month');
-    
-    if (!year || !month) {
-        year = localStorage.getItem('selectedYear') || new Date().getFullYear();
-        month = localStorage.getItem('selectedMonth') || new Date().getMonth() + 1;
-    }
-    
-    document.getElementById('yearDropdown').textContent = `Год: ${year}`;
-    document.getElementById('monthDropdown').textContent = `Месяц: ${getMonthName(month)}`;
-    
-    setupTabListeners();
-    
-    if (!window.location.search.includes('year=')) {
-        updateTable(year, month, true);
-    } else {
-        restoreActiveTabs();
-    }
-});
-
-function restoreActiveTabs() {
-    if (isInitialLoad) {
-        // При первой загрузке используем сохраненные значения
-        const subjectTabId = sessionStorage.getItem('activeSubjectTab');
-        const classTabId = sessionStorage.getItem('activeClassTab');
-        
-        if (subjectTabId) {
-            const subjectTab = document.querySelector(subjectTabId);
-            if (subjectTab) {
-                new bootstrap.Tab(subjectTab).show();
-                
-                if (classTabId) {
-                    setTimeout(() => {
-                        const classTab = document.querySelector(classTabId);
-                        if (classTab) new bootstrap.Tab(classTab).show();
-                    }, 150);
-                }
-            }
-        }
-        isInitialLoad = false;
-    } else {
-        // При обновлении сохраняем текущие вкладки
-        const currentSubjectTab = document.querySelector('#subjectTabs .nav-link.active');
-        const currentClassTab = document.querySelector('.tab-pane.active .nav-link.active');
-        
-        if (currentSubjectTab) {
-            sessionStorage.setItem('activeSubjectTab', `#${currentSubjectTab.id}`);
-            
-            if (currentClassTab) {
-                sessionStorage.setItem('activeClassTab', `#${currentClassTab.id}`);
-            }
-        }
-    }
-}
-
-// Сохраняем активные вкладки при переключении
-document.querySelectorAll('.nav-tabs button[data-bs-toggle="tab"]').forEach(tab => {
-    tab.addEventListener('shown.bs.tab', function (event) {
-        const tabId = event.target.getAttribute('id');
-        if (event.target.closest('.nav-tabs')) {
-            // Это основная вкладка (предмет)
-            sessionStorage.setItem('activeSubjectTab', `#${tabId}`);
-        } else {
-            // Это вложенная вкладка (класс)
-            sessionStorage.setItem('activeClassTab', `#${tabId}`);
-        }
-    });
-});
-
-function handleTabChange(event) {
-    if (preventTabSave) return;
-    
-    const tab = event.target;
-    const tabId = tab.id;
-    
-    if (tab.closest('#subjectTabs')) {
-        sessionStorage.setItem('activeSubjectTab', `#${tabId}`);
-        // При смене предмета сбрасываем вкладку класса
-        sessionStorage.removeItem('activeClassTab');
-    } else if (tab.closest('[id^="classTabs-"]')) {
-        sessionStorage.setItem('activeClassTab', `#${tabId}`);
-    }
-}
-
-function handleSubjectTabChange(event) {
-    const tabId = event.target.getAttribute('id');
-    sessionStorage.setItem('activeSubjectTab', `#${tabId}`);
-    // При смене предмета сбрасываем сохраненную вкладку класса
-    sessionStorage.removeItem('activeClassTab');
-}
-
-function handleClassTabChange(event) {
-    const tabId = event.target.getAttribute('id');
-    sessionStorage.setItem('activeClassTab', `#${tabId}`);
-}
-
-function setupTabListeners() {
-    // Удаляем старые обработчики
-    document.querySelectorAll('[data-bs-toggle="tab"]').forEach(tab => {
-        tab.removeEventListener('shown.bs.tab', handleTabChange);
-    });
-    
-    // Добавляем новые обработчики
-    document.querySelectorAll('[data-bs-toggle="tab"]').forEach(tab => {
-        tab.addEventListener('shown.bs.tab', handleTabChange);
-    });
-}
-
-
-// Восстановление состояния при загрузке
-document.addEventListener('DOMContentLoaded', function() {
-    // Проверяем параметры URL в первую очередь
-    const urlParams = new URLSearchParams(window.location.search);
-    let year = urlParams.get('year');
-    let month = urlParams.get('month');
-    
-    // Если нет в URL, проверяем localStorage
-    if (!year || !month) {
-        year = localStorage.getItem('selectedYear') || new Date().getFullYear();
-        month = localStorage.getItem('selectedMonth') || new Date().getMonth() + 1;
-    }
-    
-    // Обновляем интерфейс
-    if (year && month) {
-        document.getElementById('yearDropdown').textContent = `Год: ${year}`;
-        document.getElementById('monthDropdown').textContent = `Месяц: ${getMonthName(month)}`;
-    }
-    
-    setupTabListeners();
-    
-    // Если это первоначальная загрузка, а не AJAX-обновление
-    if (!window.location.search.includes('year=')) {
-        updateTable(year, month, true);
-    } else {
-        // Если параметры уже есть в URL, просто восстанавливаем вкладки
-        restoreActiveTabs();
-    }
-});
-
-// Обработчик для кнопки обновления
-document.getElementById('refreshButton').addEventListener('click', function() {
-    const year = localStorage.getItem('selectedYear') || new Date().getFullYear();
-    const month = localStorage.getItem('selectedMonth') || new Date().getMonth() + 1;
-    updateTable(year, month, true);
-});
-
-function getMonthName(monthNum) {
-    const months = [
-        'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
-        'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'
-    ];
-    return months[monthNum - 1] || monthNum;
-}
-// Инициализация при загрузке страницы
-document.addEventListener('DOMContentLoaded', function() {
-    initGradeEditors();
-    
-    // Также инициализируем после AJAX-обновления
-    document.addEventListener('ajaxComplete', function() {
-        initGradeEditors();
-    });
-});
 
 function handleGradeEdit(event) {
     const cell = event.target;
@@ -999,6 +625,17 @@ function initAddStudentModal() {
 
 document.addEventListener('DOMContentLoaded', function () {
     initAddStudentModal();  // Инициализация при первой загрузке
+});
+// Инициализация при загрузке страницы
+document.addEventListener('DOMContentLoaded', function() {
+    initAllModals(); // Инициализируем все модальные окна
+    initGradeEditors();
+    
+    // Инициализация после AJAX-обновления
+    document.addEventListener('ajaxComplete', function() {
+        initAllModals();
+        initGradeEditors();
+    });
 });
 </script>
 {% endblock %}
