@@ -170,6 +170,12 @@
             {% if not subject.classes %}
             <div class="alert alert-warning mt-3">
                 Нет классов по этому предмету
+                                    <div class="mt-2">
+                                        <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal"
+                                                data-bs-target="#addRecordClassModal">
+                                            Добавить Класс
+                                        </button>
+                                    </div>
             </div>
             {% else %}
             <!-- Вложенные вкладки (классы) -->

@@ -436,12 +436,11 @@ def posts():
                 'dates': sorted_dates
             })
         
-        if classes_data:
-            subjects_data.append({
-                'subject_id': subject.id,
-                'subject_name': subject.subject_name,
-                'classes': classes_data
-            })
+        subjects_data.append({
+            'subject_id': subject.id,
+            'subject_name': subject.subject_name,
+            'classes': classes_data  # Может быть пустым
+})
     
     return render_template('posts.html', 
                          subjects_data=subjects_data,
