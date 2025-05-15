@@ -173,6 +173,42 @@ def get_class_data():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route("/get_teacher_id")
+@login_required
+def get_teacher_id():
+    subject_id = request.args.get("subject_id", type=int)  # Получаем subject_id из запроса
+    teacher_id = current_user.teacher_id  # teacher_id из авторизованного пользователя
+
+    if not teacher_id:
+        return jsonify({
+            "success": False,
+            "error": "Пользователь не привязан к преподавателю"
+        }), 400
+
+    if not subject_id:
+        return jsonify({
+            "success": False,
+            "error": "Не указан subject_id"
+        }), 400
+
+    # Проверяем, что преподаватель ведёт данный предмет
+    teacher_subject = Teacher_subject.query.filter_by(
+        teacher_id=teacher_id,
+        subject_id=subject_id
+    ).first()
+
+    if not teacher_subject:
+        return jsonify({
+            "success": False,
+            "error": "Преподаватель не ведёт данный предмет"
+        }), 404
+
+    return jsonify({
+        "success": True,
+        "teacher_id": teacher_id,
+        "subject_id": subject_id
+    })
+
 @app.route('/update_grade', methods=['POST'])
 @login_required
 def update_grade():
@@ -950,7 +986,6 @@ def add_student():
         )
         db.session.add(new_student)
         db.session.commit()
-        print("ID нового класса:", new_student.id)
         flash("Студент успешно добавлен", "success")
     except Exception as e:
         db.session.rollback()
@@ -962,19 +997,41 @@ def add_student():
 @login_required
 def add_subject():
     classname = request.form.get("classname")
-    subjectid = request.form.get("classid")
-    print(classname,subjectid)
+    subject_id = request.form.get("subject_id")
+    teacher_id = request.form.get("teacher_id")
+
+    if not all([subject_id, teacher_id]):
+        flash("Невозможно опознать учителя или предмет", "error")
+        return redirect(url_for('posts'))
 
     if not classname:
         flash("Необходимо заполнить все поля", "error")
         return redirect(url_for('posts'))
-
+    
+    print(classname,subject_id,teacher_id)
+    teacher_subject = Teacher_subject.query.filter_by(
+    teacher_id=teacher_id,
+    subject_id=subject_id
+        ).first()
+    print(teacher_subject.id)
+    if teacher_subject:
+            teacher_subject_id = teacher_subject.id
+            
     try:
         new_class = Classes(
             class_name=escape(classname)
         )
-        db.session.add(new_class)
+        db.session.add(new_class)                 
+        db.session.commit()            
+        new_teacher_subject_class = Teacher_subject_class(
+        teacher_subject_id = teacher_subject.id,
+        class_id = new_class.id
+        )
+        db.session.add(new_teacher_subject_class)
         db.session.commit()
+
+        
+        print("ID новой связки:", new_teacher_subject_class.id)
         print("ID нового класса:", new_class.id)
         flash("Класс успешно добавлен", "success")
     except Exception as e:

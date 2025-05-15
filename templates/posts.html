@@ -32,7 +32,8 @@
 </div>
 
 <!-- окно для добавления класса -->
-<div class="modal fade" id="addRecordClassModal" tabindex="-1" aria-labelledby="addRecordClassModalLabel" aria-hidden="true">
+<div class="modal fade" id="addRecordClassModal" tabindex="-1"
+     aria-labelledby="addRecordClassModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
@@ -40,13 +41,16 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
             </div>
             <div class="modal-body">
-                <form method="post" class="needs-validation" novalidate>
+                <form id="addClassForm" method="post" action="/add_class" class="needs-validation" novalidate>
+                    <input type="hidden" name="teacher_id" id="teacherIdInput">
+                    <input type="hidden" name="subject_id" id="subjectIdInput">
+
                     <div class="mb-3">
-                        <input type="hidden" name="classid" id="subjectIdInput">
-                        <label for="classname" class="form-label">Класс</label>
-                        <input type="text" name="firstname" class="form-control" id="firstname" required>
-                        <div class="invalid-feedback">Введите Класс</div>
+                        <label for="classname" class="form-label">Название класса</label>
+                        <input type="text" name="classname" class="form-control" id="classname" required>
+                        <div class="invalid-feedback">Введите название класса</div>
                     </div>
+
                     <button class="btn btn-success" type="submit">Сохранить</button>
                 </form>
             </div>
@@ -310,30 +314,62 @@ document.addEventListener("DOMContentLoaded", function () {
     const modal = document.getElementById('addRecordClassModal');
     if (modal) {
         modal.addEventListener('shown.bs.modal', function () {
-            console.log(' Модальное окно "Добавить класс" открыто');
+            console.log('Модальное окно "Добавить класс" открыто');
 
-            const { subjectId, classId } = getCurrentClassId() || {};
+            // Получаем subjectId из текущей вкладки
+            const { subjectId } = getCurrentClassId() || {};
 
-            if (classId) {
-                console.log(' Найден class_id:', classId);
-                console.log(' subject_id:', subjectId);
-
-                const hiddenInput = document.getElementById('subjectIdInput');
-                if (hiddenInput) {
-                    hiddenInput.value = classId;
-                    console.log(' class_id записан в форму');
-                } else {
-                    console.error(' Скрытое поле subjectIdInput не найдено');
-                }
-
-            } else {
-                console.error(' class_id не найден');
+            if (!subjectId) {
+                alert('Не найден subject_id!');
+                console.error('subject_id не найден');
+                return;
             }
+
+            console.log('Найден subject_id:', subjectId);
+
+            // Вызываем функцию для получения teacher_id
+            fetchTeacherId(subjectId);
         });
     } else {
-        console.warn(' Модальное окно #addRecordClassModal не найдено');
+        console.warn('Модальное окно #addRecordClassModal не найдено');
     }
 });
+
+function fetchTeacherId(subjectId) {
+    fetch(`/get_teacher_id?subject_id=${subjectId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                console.log('Данные успешно получены:', data);
+
+                // Записываем teacher_id в форму
+                const teacherInput = document.getElementById('teacherIdInput');
+                if (teacherInput) {
+                    teacherInput.value = data.teacher_id;
+                }
+
+                // Если нужно — можно записать subject_id тоже
+                const subjectInput = document.getElementById('subjectIdInput'); // если есть такое поле
+                if (subjectInput) {
+                    subjectInput.value = data.subject_id;
+                }
+
+                // Открываем модальное окно (если оно не открыто)
+                const modalElement = document.getElementById('addRecordClassModal');
+                const modalInstance = bootstrap.Modal.getInstance(modalElement);
+                if (!modalInstance._isShown) {
+                    modalInstance.show();
+                }
+            } else {
+                alert('Ошибка: ' + (data.error || 'Не удалось получить данные'));
+                console.error('Ошибка получения teacher_id:', data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Произошла ошибка:', error);
+            alert('Не удалось загрузить данные преподавателя');
+        });
+}
 </script>
 
 </div>
@@ -881,16 +917,13 @@ document.querySelectorAll('[contenteditable="true"]').forEach(cell => {
 function getCurrentClassId() {
     const activeSubjectPane = document.querySelector('#subjectTabsContent .tab-pane.active');
     const activeClassPane = activeSubjectPane?.querySelector('.tab-pane.active');
-
     if (!activeClassPane) return null;
 
-    // Получаем class_id из id вкладки (формат id: "class-subject_id-class_id")
     const match = activeClassPane.id.match(/class-(\d+)-(\d+)/);
     if (!match) return null;
 
     const subjectId = match[1];
     const classId = match[2];
-
     return { subjectId, classId };
 }
 
