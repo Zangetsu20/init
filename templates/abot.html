@@ -103,6 +103,7 @@
                                     <th>Среднее без пропусков</th>
                                     <th>Среднее грубо</th>
                                     <th>Примерная оценка</th>
+                                    <th>Активность</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -149,6 +150,31 @@
                                             {% else %}
                                                 –
                                             {% endif %}
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="progress flex-grow-1" style="height: 20px;">                                                  
+                                                    <div class="progress-bar 
+                                                        {% if student.activity >= 70 -%}
+                                                            bg-success
+                                                        {%- elif student.activity >= 60 -%}
+                                                            bg-info
+                                                        {%- elif student.activity >= 50 -%}
+                                                            bg-warning
+                                                        {%- else -%}
+                                                            bg-danger
+                                                        {%- endif %}" 
+                                                        
+                                                        role="progressbar" 
+                                                        style="width: {{ student.activity}}%"                                                         
+                                                        aria-valuenow="{{ student.activity }}" 
+                                                        aria-valuemin="0" 
+                                                        aria-valuemax="100">
+                                                        <!-- Просто игнорируй шляпе не нравится что там динамическая конструкция стоит, но все должно работать норм x2 -->
+                                                    </div>
+                                                </div>
+                                                <span class="ms-2">{{ student.activity }}%</span>
+                                            </div>
                                         </td>
                                     </tr>
                                     {% endfor %}
