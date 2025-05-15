@@ -758,10 +758,36 @@ def add_student():
         )
         db.session.add(new_student)
         db.session.commit()
+        print("ID нового класса:", new_student.id)
         flash("Студент успешно добавлен", "success")
     except Exception as e:
         db.session.rollback()
         flash(f"Ошибка при добавлении студента: {str(e)}", "error")
+
+    return redirect(url_for('posts'))
+
+@app.route("/add_class", methods=["POST"])
+@login_required
+def add_subject():
+    classname = request.form.get("classname")
+    subjectid = request.form.get("classid")
+    print(classname,subjectid)
+
+    if not classname:
+        flash("Необходимо заполнить все поля", "error")
+        return redirect(url_for('posts'))
+
+    try:
+        new_class = Classes(
+            class_name=escape(classname)
+        )
+        db.session.add(new_class)
+        db.session.commit()
+        print("ID нового класса:", new_class.id)
+        flash("Класс успешно добавлен", "success")
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Ошибка при добавлении класса: {str(e)}", "error")
 
     return redirect(url_for('posts'))
 

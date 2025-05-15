@@ -42,8 +42,8 @@
             <div class="modal-body">
                 <form method="post" class="needs-validation" novalidate>
                     <div class="mb-3">
-                        <input type="hidden" name="table" id="classIdInput">
-                        <label for="firstname" class="form-label">Класс</label>
+                        <input type="hidden" name="classid" id="subjectIdInput">
+                        <label for="classname" class="form-label">Класс</label>
                         <input type="text" name="firstname" class="form-control" id="firstname" required>
                         <div class="invalid-feedback">Введите Класс</div>
                     </div>
@@ -304,6 +304,38 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 });
 </script>
+<script>
+  // обработчик для кнопки добавить класс
+document.addEventListener("DOMContentLoaded", function () {
+    const modal = document.getElementById('addRecordClassModal');
+    if (modal) {
+        modal.addEventListener('shown.bs.modal', function () {
+            console.log(' Модальное окно "Добавить класс" открыто');
+
+            const { subjectId, classId } = getCurrentClassId() || {};
+
+            if (classId) {
+                console.log(' Найден class_id:', classId);
+                console.log(' subject_id:', subjectId);
+
+                const hiddenInput = document.getElementById('subjectIdInput');
+                if (hiddenInput) {
+                    hiddenInput.value = classId;
+                    console.log(' class_id записан в форму');
+                } else {
+                    console.error(' Скрытое поле subjectIdInput не найдено');
+                }
+
+            } else {
+                console.error(' class_id не найден');
+            }
+        });
+    } else {
+        console.warn(' Модальное окно #addRecordClassModal не найдено');
+    }
+});
+</script>
+
 </div>
 
 
