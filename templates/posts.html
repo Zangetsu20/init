@@ -296,6 +296,148 @@ function initAllModals() {
     initAddSubjectModal();
 }
 
+function addNewDate() {
+    // Сохраняем текущие активные вкладки перед выполнением
+    const currentSubjectTab = document.querySelector('#subjectTabs .nav-link.active');
+    const currentClassTab = document.querySelector('.tab-pane.active .nav-link.active');
+    const currentSubjectTabId = currentSubjectTab ? `#${currentSubjectTab.id}` : null;
+    const currentClassTabId = currentClassTab ? `#${currentClassTab.id}` : null;
+
+    // 1. Получаем текущие год и месяц
+    const urlParams = new URLSearchParams(window.location.search);
+    const year = urlParams.get('year') || new Date().getFullYear();
+    const month = urlParams.get('month') || new Date().getMonth() + 1;
+    
+    // 2. Запрашиваем у пользователя день
+    const day = prompt("Введите день месяца (1-31):");
+    if (!day || isNaN(day) || day < 1 || day > 31) {
+        alert("Некорректный день. Введите число от 1 до 31");
+        return;
+    }
+    
+    // 3. Форматируем дату
+    const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    
+    // 4. Находим активные вкладки
+    const activeSubjectPane = document.querySelector('#subjectTabsContent .tab-pane.active');
+    const activeClassPane = activeSubjectPane?.querySelector('.tab-pane.active');
+
+    if (!activeSubjectPane || !activeClassPane) {
+        alert("Не удалось определить активный класс");
+        return;
+    }
+    
+    // 5. Получаем ID класса из структуры DOM
+    const classHeader = activeClassPane.querySelector('h5');
+    if (!classHeader) {
+        alert("Не найден заголовок класса");
+        return;
+    }
+    
+    // 6. Находим таблицу и первую ячейку с данными
+    const table = activeClassPane.querySelector('table');
+    const firstCellWithData = table?.querySelector('[data-teacher-subject-class-id]');
+    
+    if (!firstCellWithData) {
+        // Если нет ячеек с данными, пробуем получить teacher_subject_class_id из структуры
+        const classIdMatch = activeClassPane.id.match(/class-(\d+)-(\d+)/);
+        if (!classIdMatch) {
+            alert("Не удалось определить параметры класса");
+            return;
+        }
+        
+        const subjectId = classIdMatch[1];
+        const classId = classIdMatch[2];
+        
+        // Запрашиваем данные через API
+        fetch(`/get_class_data?class_id=${classId}&subject_id=${subjectId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (!data.teacher_subject_class_id) {
+                    throw new Error("Не удалось получить данные класса");
+                }
+                
+                // Используем первого ученика или создаем временную запись
+                const studentId = data.first_student_id || 0;
+                
+                return fetch('/update_grade', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        student_id: studentId,
+                        date: dateStr,
+                        teacher_subject_class_id: data.teacher_subject_class_id,
+                        new_grade: " "
+                    })
+                });
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Восстанавливаем сохраненные вкладки после обновления
+                    updateTable(year, month, true).then(() => {
+                        if (currentSubjectTabId) {
+                            const tab = document.querySelector(currentSubjectTabId);
+                            if (tab) new bootstrap.Tab(tab).show();
+                        }
+                        if (currentClassTabId) {
+                            const tab = document.querySelector(currentClassTabId);
+                            if (tab) new bootstrap.Tab(tab).show();
+                        }
+                    });
+                } else {
+                    throw new Error(data.error || 'Ошибка сервера');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Ошибка: ' + error.message);
+            });
+        return;
+    }
+    
+    // 7. Если есть данные в таблице, используем их
+    const studentId = firstCellWithData.dataset.studentId;
+    const teacherSubjectClassId = firstCellWithData.dataset.teacherSubjectClassId;
+    
+    fetch('/update_grade', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            student_id: studentId,
+            date: dateStr,
+            teacher_subject_class_id: teacherSubjectClassId,
+            new_grade: " "
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Восстанавливаем сохраненные вкладки после обновления
+            updateTable(year, month, true).then(() => {
+                if (currentSubjectTabId) {
+                    const tab = document.querySelector(currentSubjectTabId);
+                    if (tab) new bootstrap.Tab(tab).show();
+                }
+                if (currentClassTabId) {
+                    const tab = document.querySelector(currentClassTabId);
+                    if (tab) new bootstrap.Tab(tab).show();
+                }
+            });
+        } else {
+            throw new Error(data.error || 'Ошибка сервера');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Ошибка: ' + error.message);
+    });
+}
+
 // Инициализация модального окна добавления ученика
 function initAddStudentModal() {
     const modal = document.getElementById('addRecordModal');
